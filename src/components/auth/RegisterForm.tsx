@@ -35,7 +35,7 @@ export default function RegisterForm() {
     try {
       setLoading(true);
 
-      await registerUser(name, email, password);
+      await registerUser({ name, email, password, confirmPassword });
 
       router.push("/onboarding");
       router.refresh();

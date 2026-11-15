@@ -32,7 +32,7 @@ async function request<T>(
 export const attemptService = {
   async start(assessmentId: string): Promise<AssessmentAttempt> {
     const data = await request<StartAttemptResponse>(
-      `/api/assessments/${encodeURIComponent(assessmentId)}/attempts`,
+      `/api/assessment/${encodeURIComponent(assessmentId)}/attempts`,
       {
         method: "POST",
       }
@@ -64,7 +64,7 @@ export const attemptService = {
 
   async submit(attemptId: string): Promise<SubmitAttemptResponse> {
     return request<SubmitAttemptResponse>(
-      `/api/attempts/${encodeURIComponent(attemptId)}/submit`,
+      `/api/attempts/${encodeURIComponent(attemptId)}/answers`,
       {
         method: "POST",
         body: JSON.stringify({ attemptId }),

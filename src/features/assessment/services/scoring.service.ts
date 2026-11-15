@@ -6,7 +6,7 @@ import type {
 export const scoringService = {
   async getResult(attemptId: string): Promise<AssessmentResult> {
     const response = await fetch(
-      `/api/attempts/${encodeURIComponent(attemptId)}/result`,
+      `/api/attempts/${encodeURIComponent(attemptId)}/answers/result`,
       {
         credentials: "same-origin",
         cache: "no-store",
@@ -17,7 +17,7 @@ export const scoringService = {
 
     if (!response.ok) {
       throw new Error(
-        data.message || "Không thể tải kết quả bài kiểm tra."
+        data.error || data.message || "Không thể tải kết quả bài kiểm tra."
       );
     }
 

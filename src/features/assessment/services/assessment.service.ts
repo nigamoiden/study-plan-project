@@ -26,9 +26,18 @@ async function request<T>(
 export const assessmentService = {
   async getAssessment(assessmentId: string): Promise<Assessment> {
     const data = await request<{ assessment: Assessment }>(
-      `/api/assessments/${encodeURIComponent(assessmentId)}`
+      `/api/assessment/${encodeURIComponent(assessmentId)}`
     );
 
     return data.assessment;
+  },
+
+  async list(subject?: string): Promise<Assessment[]> {
+    const query = subject ? `?subject=${encodeURIComponent(subject)}` : "";
+    const data = await request<{ assessments: Assessment[] }>(
+      `/api/assessment${query}`
+    );
+
+    return data.assessments;
   },
 };

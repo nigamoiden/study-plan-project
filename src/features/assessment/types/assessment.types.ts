@@ -42,6 +42,17 @@ export interface AssessmentAttempt {
   submittedAt?: string;
 }
 
+export interface StartAttemptResponse {
+  attempt: AssessmentAttempt;
+  resumed: boolean;
+  expired?: boolean;
+}
+
+export interface SubmitAttemptResponse {
+  result: AssessmentResult;
+  alreadySubmitted: boolean;
+}
+
 export interface AssessmentResult {
   id: string;
   attemptId: string;

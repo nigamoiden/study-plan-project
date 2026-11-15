@@ -23,7 +23,7 @@ export default function LoginForm() {
     try {
       setLoading(true);
 
-      await loginUser(email, password);
+      await loginUser({ email, password });
 
       router.push("/dashboard");
       router.refresh();

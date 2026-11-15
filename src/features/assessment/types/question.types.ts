@@ -45,6 +45,20 @@ export type QuestionAnswer =
       answer: string;
     };
 
+export type MultipleChoiceAnswer = Extract<
+  QuestionAnswer,
+  { type: "multiple_choice" }
+>;
+export type TrueFalseAnswer = Extract<
+  QuestionAnswer,
+  { type: "true_false" }
+>;
+export type ShortAnswerAnswer = Extract<
+  QuestionAnswer,
+  { type: "short_answer" }
+>;
+export type EssayAnswer = Extract<QuestionAnswer, { type: "essay" }>;
+
 export interface QuestionAnswerKey {
   questionId: string;
   correctOptionId?: string;

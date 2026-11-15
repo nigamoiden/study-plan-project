@@ -1,9 +1,13 @@
 import { z } from "zod";
 
 export const manualGradeSchema = z.object({
-  questionId: z.string().uuid(),
-  points: z.number().min(0),
-  feedback: z.string().optional(),
+  grades: z.array(
+    z.object({
+      questionId: z.string().min(1).max(100),
+      earnedPoints: z.number().finite().min(0),
+      feedback: z.string().max(5000).optional(),
+    })
+  ).min(1).max(200),
 });
 
 export const questionOptionSchema = z.object({
@@ -179,6 +183,21 @@ export const createAssessmentSchema = z
         path: ["answerKeys"],
       });
     }
+  });
+
+export const updateAssessmentSchema = z
+  .object({
+    title: z.string().trim().min(3).max(200),
+    description: z.string().max(5000),
+    subject: z.string().trim().min(1).max(100),
+    durationMinutes: z.number().int().min(1).max(600),
+    passingScore: z.number().min(0).max(100),
+    maxAttempts: z.number().int().min(1).max(20),
+    questions: z.array(questionSchema).min(1).max(200),
+  })
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Cần có ít nhất một trường để cập nhật.",
   });
 
 export type CreateAssessmentInput = z.infer<
