@@ -1,20 +1,24 @@
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
-  updateProfile,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signOut,
-  User,
+  updateProfile,
+  type User,
 } from "firebase/auth";
 
-import {
-  auth,
-  googleProvider,
-} from "@/lib/firebase/client";
+import { auth, googleProvider } from "@/lib/firebase/client";
 
-// Tạo session cookie ở backend
-async function createSession(user: User) {
+import type {
+  LoginInput,
+  RegisterInput,
+  PasswordResetInput,
+} from "../types/auth.types";
+
+async function createSession(user: User): Promise<void> {
   const idToken = await user.getIdToken();
 
   const response = await fetch("/api/auth/session", {
@@ -31,20 +35,17 @@ async function createSession(user: User) {
   }
 }
 
-// Đăng ký
 export async function registerUser(
-  name: string,
-  email: string,
-  password: string
-) {
+  input: RegisterInput
+): Promise<User> {
   const credential = await createUserWithEmailAndPassword(
     auth,
-    email,
-    password
+    input.email.trim(),
+    input.password
   );
 
   await updateProfile(credential.user, {
-    displayName: name,
+    displayName: input.name.trim(),
   });
 
   await sendEmailVerification(credential.user);
@@ -54,15 +55,13 @@ export async function registerUser(
   return credential.user;
 }
 
-// Đăng nhập email
 export async function loginUser(
-  email: string,
-  password: string
-) {
+  input: LoginInput
+): Promise<User> {
   const credential = await signInWithEmailAndPassword(
     auth,
-    email,
-    password
+    input.email.trim(),
+    input.password
   );
 
   await createSession(credential.user);
@@ -70,28 +69,31 @@ export async function loginUser(
   return credential.user;
 }
 
-// Đăng nhập Google
-export async function loginWithGoogle() {
-  const credential = await signInWithPopup(
-    auth,
-    googleProvider
-  );
+export async function loginWithGoogle(): Promise<User> {
+  const credential = await signInWithPopup(auth, googleProvider);
 
   await createSession(credential.user);
 
   return credential.user;
 }
 
-// Đăng xuất
-export async function logoutUser() {
-  const response = await fetch("/api/auth/logout", {
-    method: "POST",
-    credentials: "same-origin",
-  });
+export async function resetPassword(
+  input: PasswordResetInput
+): Promise<void> {
+  await sendPasswordResetEmail(auth, input.email.trim());
+}
 
-  if (!response.ok) {
-    throw new Error("Không thể kết thúc phiên đăng nhập");
+export async function logoutUser(): Promise<void> {
+  try {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      throw new Error("Không thể kết thúc phiên đăng nhập");
+    }
+  } finally {
+    await signOut(auth);
   }
-
-  await signOut(auth);
 }

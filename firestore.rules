@@ -30,3 +30,48 @@ service cloud.firestore {
     }
   }
 }
+match /assessments/{assessmentId} {
+  allow read: if request.auth != null
+    && resource.data.status == "published";
+
+  allow write: if false;
+}
+
+match /assessmentAnswerKeys/{assessmentId} {
+  allow read, write: if false;
+}
+
+match /assessmentAttempts/{attemptId} {
+  allow read: if request.auth != null
+    && resource.data.userId == request.auth.uid;
+
+  allow create, update, delete: if false;
+}
+
+match /assessmentResults/{attemptId} {
+  allow read: if request.auth != null
+    && get(
+      /databases/$(database)/documents/assessmentAttempts/$(attemptId)
+    ).data.userId == request.auth.uid;
+
+  allow write: if false;
+}
+match /assessments/{assessmentId} {
+  allow read, write: if false;
+}
+
+match /assessmentAnswerKeys/{assessmentId} {
+  allow read, write: if false;
+}
+
+match /assessmentAttempts/{attemptId} {
+  allow read, write: if false;
+}
+
+match /assessmentResults/{attemptId} {
+  allow read, write: if false;
+}
+
+match /assessmentUserStats/{statsId} {
+  allow read, write: if false;
+}
