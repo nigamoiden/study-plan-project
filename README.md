@@ -27,13 +27,34 @@ liệu học tập dùng Firebase Admin/Firestore.
    ```
 
    `FIREBASE_PRIVATE_KEY` phải là private key của service account; giữ bí mật và
-   không commit file môi trường.
+   không commit file môi trường. Có thể lưu newline dưới dạng `\n`; server sẽ
+   chuyển thành newline thật khi khởi tạo Firebase Admin.
 
 3. Bật Email/Password và Google trong Firebase Authentication, sau đó chạy:
 
    ```bash
    npm run dev
    ```
+
+## Deploy trên Vercel
+
+Trong **Project Settings → Environment Variables**, khai báo đủ các biến ở trên
+cho những môi trường cần deploy (Production, Preview và/hoặc Development). Các
+biến `NEXT_PUBLIC_FIREBASE_*` được dùng ở trình duyệt; ba biến `FIREBASE_*`
+không có tiền tố `NEXT_PUBLIC_` là credentials chỉ dùng ở server. Không đưa
+`FIREBASE_PRIVATE_KEY` vào mã nguồn hoặc gửi qua chat. Sau khi lưu biến, chạy
+redeploy để build mới nhận cấu hình.
+
+Build Next.js cần Firebase Admin credentials vì các API server khởi tạo Firebase
+Admin khi được nạp. Nếu thiếu, bước collect page data sẽ dừng với lỗi
+`Missing Firebase Admin environment variables`.
+
+Nếu build báo `Firebase: Error (auth/invalid-api-key)` khi prerender, kiểm tra
+`NEXT_PUBLIC_FIREBASE_API_KEY` trong Vercel: lấy giá trị `apiKey` của ứng dụng
+Web tại Firebase Console → Project settings → General → Your apps. Đây không
+phải private key của service account. Đảm bảo các biến `NEXT_PUBLIC_FIREBASE_*`
+đều thuộc cùng một Firebase project và được khai báo cho môi trường deploy đang
+dùng; sau khi sửa, tạo deployment mới.
 
 ## Kiểm tra và triển khai Firebase
 
