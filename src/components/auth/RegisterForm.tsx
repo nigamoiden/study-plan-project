@@ -39,7 +39,8 @@ export default function RegisterForm() {
 
       router.push("/onboarding");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string };
       const messages: Record<string, string> = {
         "auth/email-already-in-use":
           "Email đã được sử dụng",
@@ -55,7 +56,7 @@ export default function RegisterForm() {
       };
 
       setError(
-        messages[err.code] || "Không thể tạo tài khoản"
+        messages[firebaseError.code ?? ""] || "Không thể tạo tài khoản"
       );
     } finally {
       setLoading(false);

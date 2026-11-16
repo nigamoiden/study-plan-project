@@ -11,7 +11,7 @@ import { createAssessmentSchema } from "@/features/assessment/schemas/question.s
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAssessmentUser(request);
+    await requireAssessmentUser(request);
     const subject = request.nextUrl.searchParams.get("subject");
 
     let query = adminDb

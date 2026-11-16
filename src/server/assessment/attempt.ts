@@ -1,15 +1,43 @@
 import { HttpError } from "./http";
 
+type AttemptDocument = {
+  status?: string;
+  endsAt?:
+    | Date
+    | string
+    | number
+    | { toDate?: () => Date };
+};
+
+type AttemptAnswer = {
+  questionId: string;
+  type: string;
+  selectedOptionId?: string | null;
+};
+
+type AttemptQuestion = {
+  id: string;
+  type: string;
+  options?: Array<{ id: string }>;
+};
+
 export function assertAttemptCanBeModified(
-  attempt: Record<string, any>
+  attempt: Record<string, unknown>
 ) {
-  if (attempt.status !== "in_progress") {
+  const typedAttempt = attempt as AttemptDocument;
+
+  if (typedAttempt.status !== "in_progress") {
     throw new HttpError(409, "Lượt thi đã kết thúc, không thể sửa câu trả lời.");
   }
 
-  const endsAt = attempt.endsAt?.toDate
-    ? attempt.endsAt.toDate()
-    : new Date(attempt.endsAt);
+  const endsAtValue = typedAttempt.endsAt;
+  const endsAt =
+    typeof endsAtValue === "object" &&
+    endsAtValue !== null &&
+    "toDate" in endsAtValue &&
+    typeof endsAtValue.toDate === "function"
+      ? endsAtValue.toDate()
+      : new Date(endsAtValue as Date | string | number);
 
   if (
     Number.isNaN(endsAt.getTime()) ||
@@ -20,8 +48,8 @@ export function assertAttemptCanBeModified(
 }
 
 export function assertAnswersMatchQuestions(
-  answers: Array<Record<string, any>>,
-  questions: Array<Record<string, any>>
+  answers: AttemptAnswer[],
+  questions: AttemptQuestion[]
 ) {
   const questionMap = new Map(
     questions.map((question) => [question.id, question])
@@ -48,8 +76,7 @@ export function assertAnswersMatchQuestions(
 
     if (answer.type === "multiple_choice") {
       const optionExists = question.options?.some(
-        (option: { id: string }) =>
-          option.id === answer.selectedOptionId
+        (option) => option.id === answer.selectedOptionId
       );
 
       if (answer.selectedOptionId !== null && !optionExists) {

@@ -139,11 +139,8 @@ export default function OnboardingSummary({
             </p>
           ) : (
             <>
-              <p className="text-2xl font-bold text-violet-700">
-                {diagnostic.correctAnswers}/{diagnostic.totalQuestions}
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                Số câu trả lời đúng trong bài kiểm tra thử.
+              <p className="text-sm text-slate-600">
+                Bài làm sẽ được chấm an toàn ở máy chủ sau khi bạn hoàn tất.
               </p>
             </>
           )}

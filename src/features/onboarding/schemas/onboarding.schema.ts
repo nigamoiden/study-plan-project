@@ -47,7 +47,7 @@ export const onboardingSchema = z.object({
     answers: z.array(
       z.object({
         questionId: z.string().min(1),
-        selectedAnswer: z.number().int().min(0).max(10).nullable(),
+        selectedAnswer: z.number().int().min(0).max(3).nullable(),
       })
     ).max(50),
     totalQuestions: z.number().int().min(0).max(50),

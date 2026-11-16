@@ -5,6 +5,12 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { onboardingSchema } from "@/features/onboarding/schemas/onboarding.schema";
+import { ensureStudyPlan } from "@/server/learning/study-plan";
+import {
+  gradeDiagnosticAnswers,
+  InvalidDiagnosticAnswersError,
+} from "@/server/onboarding/diagnostic";
+import type { DiagnosticResult } from "@/features/onboarding/types/onboarding.types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +53,20 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data;
+    let diagnosticResult: DiagnosticResult;
+
+    try {
+      diagnosticResult = gradeDiagnosticAnswers(data.diagnosticTest.answers);
+    } catch (error) {
+      if (error instanceof InvalidDiagnosticAnswersError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+
     const userRef = adminDb
       .collection("users")
       .doc(decodedToken.uid);
@@ -67,13 +87,12 @@ export async function POST(request: NextRequest) {
           academicHistory: data.academicHistory,
           studyFrequency: data.studyFrequency,
 
-          // Lưu câu trả lời để backend chấm lại.
-          // Không tin điểm số do trình duyệt gửi lên.
+          // Store the server-graded result; client-provided scores are ignored.
           diagnosticTest: {
-            answers: data.diagnosticTest.answers,
+            ...diagnosticResult,
             status:
-              data.diagnosticTest.answers.length > 0
-                ? "pending_server_grading"
+              diagnosticResult.answers.length > 0
+                ? "graded"
                 : "not_started",
           },
 
@@ -86,6 +105,8 @@ export async function POST(request: NextRequest) {
       },
       { merge: true }
     );
+
+    await ensureStudyPlan(decodedToken.uid);
 
     return NextResponse.json({
       success: true,

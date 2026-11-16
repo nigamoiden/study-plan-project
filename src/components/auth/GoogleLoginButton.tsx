@@ -15,7 +15,7 @@ export default function GoogleLoginButton() {
 
       await loginWithGoogle();
 
-      router.push("/dashboard");
+      router.push("/student-dashboard");
       router.refresh();
     } catch (error) {
       console.error(error);

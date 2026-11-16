@@ -25,9 +25,10 @@ export default function LoginForm() {
 
       await loginUser({ email, password });
 
-      router.push("/dashboard");
+      router.push("/student-dashboard");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string };
       const messages: Record<string, string> = {
         "auth/invalid-credential":
           "Email hoặc mật khẩu không chính xác",
@@ -40,7 +41,7 @@ export default function LoginForm() {
       };
 
       setError(
-        messages[err.code] || "Đăng nhập thất bại"
+        messages[firebaseError.code ?? ""] || "Đăng nhập thất bại"
       );
     } finally {
       setLoading(false);

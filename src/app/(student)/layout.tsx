@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
 
 export default async function StudentLayout({
@@ -11,6 +12,13 @@ export default async function StudentLayout({
 
   if (!user) {
     redirect("/login");
+  }
+
+  const profile = await adminDb.collection("users").doc(user.uid).get();
+  const onboardingCompleted = Boolean(profile.data()?.onboardingCompleted);
+
+  if (!onboardingCompleted) {
+    redirect("/onboarding");
   }
 
   return <>{children}</>;

@@ -1,61 +1,13 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
+
 import type {
   DiagnosticAnswer,
   DiagnosticQuestion,
-  OnboardingData,
   OnboardingStepProps,
 } from "../types/onboarding.types";
-
-const questions: DiagnosticQuestion[] = [
-  {
-    id: "math-001",
-    subject: "math",
-    question: "Đạo hàm của hàm số f(x) = x² là gì?",
-    options: ["x", "2x", "x²", "2"],
-    correctAnswer: 1,
-    explanation: "Theo quy tắc đạo hàm lũy thừa, (x²)' = 2x.",
-  },
-  {
-    id: "math-002",
-    subject: "math",
-    question: "Giá trị của lim (x² - 1)/(x - 1) khi x tiến đến 1 là:",
-    options: ["0", "1", "2", "Không tồn tại"],
-    correctAnswer: 2,
-    explanation:
-      "Phân tích x² - 1 = (x - 1)(x + 1), giới hạn bằng 2.",
-  },
-  {
-    id: "math-003",
-    subject: "math",
-    question: "Nguyên hàm của 2x là:",
-    options: ["x² + C", "2x² + C", "x + C", "2 + C"],
-    correctAnswer: 0,
-    explanation: "Vì (x² + C)' = 2x.",
-  },
-  {
-    id: "math-004",
-    subject: "math",
-    question: "Nghiệm của phương trình x² - 5x + 6 = 0 là:",
-    options: [
-      "x = 1 và x = 6",
-      "x = 2 và x = 3",
-      "x = -2 và x = -3",
-      "x = 0 và x = 5",
-    ],
-    correctAnswer: 1,
-    explanation: "Ta có x² - 5x + 6 = (x - 2)(x - 3).",
-  },
-  {
-    id: "math-005",
-    subject: "math",
-    question: "Đạo hàm của sin(x) là:",
-    options: ["-sin(x)", "cos(x)", "-cos(x)", "tan(x)"],
-    correctAnswer: 1,
-    explanation: "(sin x)' = cos x.",
-  },
-];
 
 interface Props extends OnboardingStepProps {
   onSkip: () => void;
@@ -68,7 +20,40 @@ export default function DiagnosticTestStep({
   onBack,
   onSkip,
 }: Props) {
+  const [questions, setQuestions] = useState<DiagnosticQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const answers = data.diagnosticTest.answers;
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/onboarding/diagnostic", { credentials: "same-origin" })
+      .then(async (response) => {
+        const result = (await response.json()) as {
+          questions?: DiagnosticQuestion[];
+          error?: string;
+        };
+        if (!response.ok || !result.questions) {
+          throw new Error(result.error ?? "Không thể tải bài kiểm tra.");
+        }
+        if (active) setQuestions(result.questions);
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setLoadError(
+            cause instanceof Error ? cause.message : "Không thể tải bài kiểm tra."
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function selectAnswer(
     questionId: string,
@@ -79,29 +64,14 @@ export default function DiagnosticTestStep({
       { questionId, selectedAnswer },
     ];
 
-    const correctAnswers = nextAnswers.filter((answer) => {
-      const question = questions.find(
-        (item) => item.id === answer.questionId
-      );
-
-      return (
-        question &&
-        answer.selectedAnswer === question.correctAnswer
-      );
-    }).length;
-
-    const answeredCount = nextAnswers.length;
-
-    const result = {
-      answers: nextAnswers,
-      totalQuestions: questions.length,
-      correctAnswers,
-      score: Math.round(
-        (correctAnswers / questions.length) * 100
-      ),
-    };
-
-    onChange({ diagnosticTest: result });
+    onChange({
+      diagnosticTest: {
+        answers: nextAnswers,
+        totalQuestions: questions.length,
+        correctAnswers: 0,
+        score: 0,
+      },
+    });
   }
 
   const answeredCount = answers.filter(
@@ -123,6 +93,17 @@ export default function DiagnosticTestStep({
         năng lực hiện tại của bạn. Đây là bài đánh giá thử,
         không ảnh hưởng đến điểm số ở trường.
       </p>
+
+      {loading && (
+        <p role="status" className="mb-4 text-sm text-slate-600">
+          Đang tải câu hỏi...
+        </p>
+      )}
+      {loadError && (
+        <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          {loadError}
+        </p>
+      )}
 
       <div className="mb-6 flex items-center justify-between rounded-xl bg-violet-50 p-4">
         <span className="text-sm font-medium text-violet-800">
@@ -200,7 +181,7 @@ export default function DiagnosticTestStep({
 
           <button
             type="button"
-            disabled={answeredCount !== questions.length}
+            disabled={loading || Boolean(loadError) || answeredCount !== questions.length}
             onClick={onNext}
             className="rounded-xl bg-violet-600 px-7 py-3 font-semibold text-white disabled:opacity-40"
           >

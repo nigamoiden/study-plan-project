@@ -18,7 +18,7 @@ export default async function AdminLayout({
   const role = profile.data()?.role;
 
   if (role !== "admin") {
-    redirect("/dashboard");
+    redirect("/student-dashboard");
   }
 
   return <div className="min-h-screen bg-slate-100 text-slate-900">{children}</div>;

@@ -58,7 +58,7 @@ export default function LoginForm() {
 
     try {
       await loginUser(validation.data);
-      router.replace("/dashboard");
+      router.replace("/student-dashboard");
       router.refresh();
     } catch (err) {
       const code =
@@ -81,7 +81,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <GoogleLoginButton redirectTo="/dashboard" />
+      <GoogleLoginButton redirectTo="/student-dashboard" />
 
       <div className="my-6 flex items-center gap-3">
         <div className="h-px flex-1 bg-slate-200" />

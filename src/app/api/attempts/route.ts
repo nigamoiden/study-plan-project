@@ -2,19 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   adminDb,
   handleApiError,
-  requireAssessmentUser,
   HttpError,
+  requireAssessmentUser,
   serializeAttempt,
 } from "@/server/assessment/http";
 
-type Context = {
-  params: Promise<{ attemptId: string }>;
-};
-
-export async function GET(request: NextRequest, context: Context) {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireAssessmentUser(request);
-    const { attemptId } = await context.params;
+    const attemptId = request.nextUrl.searchParams.get("attemptId");
+
+    if (!attemptId) {
+      throw new HttpError(400, "Thiếu mã lượt thi.");
+    }
 
     const ref = adminDb.collection("assessmentAttempts").doc(attemptId);
     const snap = await ref.get();

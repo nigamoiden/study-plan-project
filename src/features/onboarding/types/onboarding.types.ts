@@ -44,8 +44,6 @@ export interface DiagnosticQuestion {
   subject: SubjectName;
   question: string;
   options: string[];
-  correctAnswer: number;
-  explanation: string;
 }
 
 export interface DiagnosticAnswer {

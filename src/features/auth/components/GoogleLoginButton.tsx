@@ -10,7 +10,7 @@ interface GoogleLoginButtonProps {
 }
 
 export default function GoogleLoginButton({
-  redirectTo = "/dashboard",
+  redirectTo = "/student-dashboard",
 }: GoogleLoginButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);

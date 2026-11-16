@@ -13,6 +13,27 @@ type Context = {
   params: Promise<{ attemptId: string }>;
 };
 
+type AssessmentQuestion = {
+  id: string;
+  type: string;
+  points?: number;
+  options?: Array<{ id: string }>;
+};
+
+type QuestionResultEntry = {
+  questionId: string;
+  gradingStatus?: string;
+  earnedPoints?: number;
+  isCorrect?: boolean | null;
+  feedback?: string;
+};
+
+type GradeInput = {
+  questionId: string;
+  earnedPoints: number;
+  feedback?: string;
+};
+
 export async function POST(request: NextRequest, context: Context) {
   try {
     const user = await requireAssessmentUser(request);
@@ -71,28 +92,24 @@ export async function POST(request: NextRequest, context: Context) {
         throw new HttpError(403, "Bạn không có quyền chấm đề thi này.");
       }
 
-      const questionMap = new Map(
-        assessment.questions.map((question: any) => [
+      const questionMap = new Map<string, AssessmentQuestion>(
+        (assessment.questions as AssessmentQuestion[]).map((question) => [
           question.id,
           question,
         ])
       );
 
-      const resultMap = new Map(
-        result.questionResults.map((item: any) => [
-          item.questionId,
-          item,
-        ])
+      const resultMap = new Map<string, QuestionResultEntry>(
+        (Array.isArray(result.questionResults)
+          ? result.questionResults
+          : []
+        ).map((item: QuestionResultEntry) => [item.questionId, item])
       );
 
-      for (const grade of parsed.data.grades) {
-        const question = questionMap.get(grade.questionId) as
-          | Record<string, any>
-          | undefined;
+      for (const grade of parsed.data.grades as GradeInput[]) {
+        const question = questionMap.get(grade.questionId);
 
-        const currentResult = resultMap.get(grade.questionId) as
-          | Record<string, any>
-          | undefined;
+        const currentResult = resultMap.get(grade.questionId);
 
         if (!question || question.type !== "essay") {
           throw new HttpError(
@@ -129,11 +146,11 @@ export async function POST(request: NextRequest, context: Context) {
       const questionResults = Array.from(resultMap.values());
 
       const pendingCount = questionResults.filter(
-        (item: any) => item.gradingStatus === "pending"
+        (item) => item.gradingStatus === "pending"
       ).length;
 
       const earnedPoints = questionResults.reduce(
-        (sum: number, item: any) =>
+        (sum: number, item) =>
           sum + Number(item.earnedPoints ?? 0),
         0
       );

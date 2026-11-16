@@ -106,7 +106,7 @@ export default function OnboardingWizard() {
     try {
       await saveOnboarding(data);
 
-      router.replace("/dashboard");
+      router.replace("/student-dashboard");
       router.refresh();
     } catch (err) {
       setError(
