@@ -26,6 +26,12 @@ function getRegisterError(code: string) {
     case "auth/network-request-failed":
       return "Không thể kết nối mạng.";
 
+    case "auth/invalid-api-key":
+      return "Cấu hình Firebase trên website không hợp lệ. Hãy kiểm tra Firebase Web App config trên Vercel.";
+
+    case "auth/unauthorized-domain":
+      return "Tên miền website chưa được cho phép trong Firebase Authentication.";
+
     default:
       return "Đăng ký thất bại. Vui lòng thử lại.";
   }
@@ -69,7 +75,12 @@ export default function RegisterForm() {
       router.refresh();
     } catch (err) {
       const code =
-        err instanceof Error ? err.message : "";
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        typeof err.code === "string"
+          ? err.code
+          : "";
 
       setError(getRegisterError(code));
     } finally {

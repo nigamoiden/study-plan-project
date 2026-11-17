@@ -22,6 +22,15 @@ function getLoginError(code: string) {
     case "auth/user-disabled":
       return "Tài khoản này đã bị vô hiệu hóa.";
 
+    case "auth/operation-not-allowed":
+      return "Phương thức đăng nhập hiện chưa được bật trong Firebase.";
+
+    case "auth/invalid-api-key":
+      return "Cấu hình Firebase trên website không hợp lệ. Hãy kiểm tra Firebase Web App config trên Vercel.";
+
+    case "auth/unauthorized-domain":
+      return "Tên miền website chưa được cho phép trong Firebase Authentication.";
+
     case "auth/network-request-failed":
       return "Không thể kết nối mạng. Vui lòng thử lại.";
 
@@ -62,7 +71,12 @@ export default function LoginForm() {
       router.refresh();
     } catch (err) {
       const code =
-        err instanceof Error ? err.message : "";
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        typeof err.code === "string"
+          ? err.code
+          : "";
 
       setError(getLoginError(code));
     } finally {
