@@ -2,9 +2,6 @@
   "name": "study-plan-project",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "22.x"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,7 +10,7 @@
   },
   "dependencies": {
     "firebase": "^13.3.0",
-    "firebase-admin": "^14.5.1",
+    "firebase-admin": "^13.10.0",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
