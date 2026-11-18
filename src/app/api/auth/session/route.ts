@@ -42,7 +42,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (error) {
+      console.warn("ID token verification failed:", error);
+      return NextResponse.json(
+        { error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." },
+        { status: 401 }
+      );
+    }
     const signInProvider =
       typeof decodedToken.firebase === "object" &&
       decodedToken.firebase !== null &&
@@ -69,19 +78,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let sessionCookie: string;
-    let cookieMaxAge = EXPIRES_IN / 1000;
-
-    try {
-      sessionCookie = await adminAuth.createSessionCookie(
-        idToken,
-        { expiresIn: EXPIRES_IN }
-      );
-    } catch (error) {
-      console.error("Session cookie fallback:", error);
-      sessionCookie = idToken;
-      cookieMaxAge = 60 * 60;
-    }
+    const sessionCookie = await adminAuth.createSessionCookie(
+      idToken,
+      { expiresIn: EXPIRES_IN }
+    );
 
     const userRef = adminDb
       .collection("users")
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: cookieMaxAge,
+      maxAge: EXPIRES_IN / 1000,
     });
 
     return response;
@@ -124,8 +124,11 @@ export async function POST(request: NextRequest) {
     console.error("Session error:", error);
 
     return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
+      {
+        error:
+          "Không thể tạo phiên đăng nhập. Hãy kiểm tra cấu hình Firebase Admin trên máy chủ.",
+      },
+      { status: 503 }
     );
   }
 }
