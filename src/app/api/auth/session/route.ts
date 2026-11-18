@@ -43,9 +43,28 @@ export async function POST(request: NextRequest) {
     }
 
     const decodedToken = await adminAuth.verifyIdToken(idToken);
-    if (decodedToken.email_verified !== true) {
+    const signInProvider =
+      typeof decodedToken.firebase === "object" &&
+      decodedToken.firebase !== null &&
+      "sign_in_provider" in decodedToken.firebase
+        ? decodedToken.firebase.sign_in_provider
+        : null;
+    const isGoogleSignIn = signInProvider === "google.com";
+
+    if (!isGoogleSignIn && decodedToken.email_verified !== true) {
       return NextResponse.json(
         { error: "Hãy xác minh email trước khi đăng nhập." },
+        { status: 403 }
+      );
+    }
+
+    const firebaseProfile = await adminDb
+      .collection("users")
+      .doc(decodedToken.uid)
+      .get();
+    if (firebaseProfile.data()?.disabled === true) {
+      return NextResponse.json(
+        { error: "Tài khoản của bạn đã bị khóa." },
         { status: 403 }
       );
     }

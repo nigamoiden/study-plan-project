@@ -38,7 +38,10 @@ function getGoogleLoginError(error: unknown): string {
 
   if (
     error instanceof Error &&
-    error.message === "Không thể tạo phiên đăng nhập"
+    (
+      error.message === "Không thể tạo phiên đăng nhập" ||
+      error.message.includes("phiên đăng nhập")
+    )
   ) {
     return "Đăng nhập Google thành công nhưng máy chủ không tạo được phiên. Hãy kiểm tra POST /api/auth/session trên Vercel.";
   }
@@ -61,6 +64,12 @@ export default function GoogleLoginButton({
       .then(async (user) => {
         if (!active || !user) return;
         const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+        if (!response.ok) {
+          const data = await response.json().catch(() => null) as
+            | { error?: string }
+            | null;
+          throw new Error(data?.error ?? "Không thể xác nhận phiên đăng nhập Google.");
+        }
         const data = await response.json() as {
           role?: "student" | "teacher" | "admin";
           onboardingCompleted?: boolean;
@@ -78,16 +87,7 @@ export default function GoogleLoginButton({
       })
       .catch((cause) => {
         if (active) {
-          const code =
-            typeof cause === "object" &&
-            cause !== null &&
-            "code" in cause &&
-            typeof cause.code === "string"
-              ? cause.code
-              : "";
-          if (code !== "auth/internal-error") {
-            setError(getGoogleLoginError(cause));
-          }
+          setError(getGoogleLoginError(cause));
         }
       });
 
@@ -103,6 +103,12 @@ export default function GoogleLoginButton({
     try {
       await loginWithGoogle();
       const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null) as
+          | { error?: string }
+          | null;
+        throw new Error(data?.error ?? "Không thể xác nhận phiên đăng nhập Google.");
+      }
       const data = await response.json() as {
         role?: "student" | "teacher" | "admin";
         onboardingCompleted?: boolean;

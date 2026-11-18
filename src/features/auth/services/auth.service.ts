@@ -32,7 +32,10 @@ async function createSession(user: User): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Không thể tạo phiên đăng nhập");
+    const data = await response.json().catch(() => null) as
+      | { error?: string }
+      | null;
+    throw new Error(data?.error ?? "Không thể tạo phiên đăng nhập");
   }
 }
 
@@ -76,6 +79,7 @@ export async function loginWithGoogle(): Promise<User> {
 }
 
 export async function completeGoogleRedirectLogin(): Promise<User | null> {
+  await auth.authStateReady();
   const credential = await getRedirectResult(auth);
   if (!credential) return null;
   await createSession(credential.user);
