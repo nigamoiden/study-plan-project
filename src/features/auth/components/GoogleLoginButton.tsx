@@ -34,8 +34,6 @@ function getGoogleLoginError(error: unknown): string {
       return "Cấu hình Firebase Web trên Vercel không hợp lệ.";
     case "auth/network-request-failed":
       return "Không thể kết nối Firebase. Hãy kiểm tra kết nối mạng và thử lại.";
-    case "auth/internal-error":
-      return "Firebase đang gặp lỗi cửa sổ xác thực. Thử đăng nhập lại; hệ thống sẽ chuyển sang luồng Google redirect.";
   }
 
   if (
@@ -80,7 +78,16 @@ export default function GoogleLoginButton({
       })
       .catch((cause) => {
         if (active) {
-          setError(getGoogleLoginError(cause));
+          const code =
+            typeof cause === "object" &&
+            cause !== null &&
+            "code" in cause &&
+            typeof cause.code === "string"
+              ? cause.code
+              : "";
+          if (code !== "auth/internal-error") {
+            setError(getGoogleLoginError(cause));
+          }
         }
       });
 

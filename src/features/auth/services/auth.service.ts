@@ -2,7 +2,6 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   sendEmailVerification,
@@ -72,38 +71,8 @@ export async function loginUser(
 }
 
 export async function loginWithGoogle(): Promise<User> {
-  try {
-    const credential = await signInWithPopup(auth, googleProvider);
-    await createSession(credential.user);
-    return credential.user;
-  } catch (error) {
-    const code =
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      typeof error.code === "string"
-        ? error.code
-        : "";
-
-    if (
-      code === "auth/internal-error" ||
-      code === "auth/popup-blocked" ||
-      code === "auth/popup-closed-by-user"
-    ) {
-      if (code === "auth/popup-closed-by-user") {
-        throw error;
-      }
-
-      try {
-        await signInWithRedirect(auth, googleProvider);
-        return new Promise<User>(() => undefined);
-      } catch (redirectError) {
-        throw redirectError;
-      }
-    }
-
-    throw error;
-  }
+  await signInWithRedirect(auth, googleProvider);
+  return new Promise<User>(() => undefined);
 }
 
 export async function completeGoogleRedirectLogin(): Promise<User | null> {
