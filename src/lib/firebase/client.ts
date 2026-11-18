@@ -16,6 +16,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+if (
+  !firebaseConfig.apiKey ||
+  !firebaseConfig.authDomain ||
+  !firebaseConfig.projectId ||
+  !firebaseConfig.appId
+) {
+  throw new Error("Thiếu cấu hình Firebase Web");
+}
+
 const app = getApps().length
   ? getApp()
   : initializeApp(firebaseConfig);

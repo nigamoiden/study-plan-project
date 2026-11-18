@@ -1,9 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginWithGoogle } from "../services/auth.service";
+import {
+  completeGoogleRedirectLogin,
+  loginWithGoogle,
+} from "../services/auth.service";
 
 interface GoogleLoginButtonProps {
   redirectTo?: string;
@@ -31,6 +34,8 @@ function getGoogleLoginError(error: unknown): string {
       return "Cấu hình Firebase Web trên Vercel không hợp lệ.";
     case "auth/network-request-failed":
       return "Không thể kết nối Firebase. Hãy kiểm tra kết nối mạng và thử lại.";
+    case "auth/internal-error":
+      return "Firebase đang gặp lỗi cửa sổ xác thực. Thử đăng nhập lại; hệ thống sẽ chuyển sang luồng Google redirect.";
   }
 
   if (
@@ -51,6 +56,38 @@ export default function GoogleLoginButton({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    completeGoogleRedirectLogin()
+      .then(async (user) => {
+        if (!active || !user) return;
+        const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+        const data = await response.json() as {
+          role?: "student" | "teacher" | "admin";
+          onboardingCompleted?: boolean;
+        };
+        const destination =
+          data.role === "admin"
+            ? "/dashboard"
+            : data.role === "teacher"
+              ? "/teacher/dashboard"
+              : data.onboardingCompleted
+                ? redirectTo
+                : "/onboarding";
+        router.replace(destination);
+        router.refresh();
+      })
+      .catch((cause) => {
+        if (active) {
+          setError(getGoogleLoginError(cause));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [redirectTo, router]);
 
   async function handleGoogleLogin() {
     setLoading(true);
