@@ -11,6 +11,7 @@ import {
   InvalidDiagnosticAnswersError,
 } from "@/server/onboarding/diagnostic";
 import type { DiagnosticResult } from "@/features/onboarding/types/onboarding.types";
+import { containsClientIdentityField } from "@/server/auth/identity-guard";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +41,12 @@ export async function POST(request: NextRequest) {
     );
 
     const body = await request.json();
+    if (containsClientIdentityField(body)) {
+      return NextResponse.json(
+        { error: "Không được gửi ID người dùng trong nội dung yêu cầu." },
+        { status: 400 }
+      );
+    }
     const validation = onboardingSchema.safeParse(body);
 
     if (!validation.success) {
@@ -87,7 +94,6 @@ export async function POST(request: NextRequest) {
           academicHistory: data.academicHistory,
           studyFrequency: data.studyFrequency,
 
-          // Store the server-graded result; client-provided scores are ignored.
           diagnosticTest: {
             ...diagnosticResult,
             status:

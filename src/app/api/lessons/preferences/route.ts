@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { focusSubjectsSchema } from "@/features/learning-content/schemas/content.schema";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
+import { containsClientIdentityField } from "@/server/auth/identity-guard";
 
 export async function PATCH(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -23,6 +24,13 @@ export async function PATCH(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Dữ liệu yêu cầu không hợp lệ." }, { status: 400 });
+  }
+
+  if (containsClientIdentityField(body)) {
+    return NextResponse.json(
+      { error: "Không được gửi ID người dùng trong nội dung yêu cầu." },
+      { status: 400 }
+    );
   }
 
   const parsed = focusSubjectsSchema.safeParse(body);

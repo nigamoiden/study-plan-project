@@ -9,6 +9,7 @@ type InboxMessage = {
   score?: number;
   status: string;
   createdAt: string | null;
+  read?: boolean;
 };
 
 export default function InboxPage() {
@@ -56,6 +57,27 @@ export default function InboxPage() {
               <p className="mt-3 text-xs text-slate-500">
                 {new Date(message.createdAt).toLocaleString("vi-VN")}
               </p>
+            )}
+            {!message.read && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await fetch("/api/inbox", {
+                    method: "PATCH",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messageId: message.id, read: true }),
+                  });
+                  setMessages((current) =>
+                    current.map((item) =>
+                      item.id === message.id ? { ...item, read: true } : item
+                    )
+                  );
+                }}
+                className="mt-3 rounded-lg border border-violet-200 px-3 py-1.5 text-sm font-semibold text-violet-700"
+              >
+                Đánh dấu đã đọc
+              </button>
             )}
           </article>
         ))}

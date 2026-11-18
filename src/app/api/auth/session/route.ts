@@ -6,12 +6,22 @@ import {
 } from "@/lib/firebase/admin";
 
 import { FieldValue } from "firebase-admin/firestore";
+import { checkRateLimit } from "@/server/security/rate-limit";
 
 const EXPIRES_IN = 5 * 24 * 60 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
-    // Kiểm tra origin
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    const limit = checkRateLimit(`session:${ip}`, 30, 10 * 60 * 1000);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Quá nhiều lần đăng nhập. Vui lòng thử lại sau." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+      );
+    }
     const origin = request.headers.get("origin");
 
     const expectedOrigin = new URL(request.url).origin;
@@ -32,15 +42,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Xác thực ID Token
     const decodedToken = await adminAuth.verifyIdToken(idToken);
+    if (decodedToken.email_verified !== true) {
+      return NextResponse.json(
+        { error: "Hãy xác minh email trước khi đăng nhập." },
+        { status: 403 }
+      );
+    }
 
     const sessionCookie = await adminAuth.createSessionCookie(
       idToken,
       { expiresIn: EXPIRES_IN }
     );
 
-    // Tạo hồ sơ nếu người dùng chưa có
     const userRef = adminDb
       .collection("users")
       .doc(decodedToken.uid);

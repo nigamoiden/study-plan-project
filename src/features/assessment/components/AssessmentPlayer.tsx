@@ -54,7 +54,6 @@ export default function AssessmentPlayer({
   const answersRef = useRef<QuestionAnswer[]>([]);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
-  // Khởi tạo bài kiểm tra.
   useEffect(() => {
     let cancelled = false;
 
@@ -109,8 +108,6 @@ export default function AssessmentPlayer({
     };
   }, [assessmentId]);
 
-  // Lưu câu trả lời theo hàng đợi để tránh các request
-  // lưu đồng thời ghi đè dữ liệu của nhau.
   const saveAnswers = useCallback(
     (nextAnswers: QuestionAnswer[]) => {
       if (!attempt || submittedRef.current) {
@@ -165,10 +162,8 @@ export default function AssessmentPlayer({
     setError("");
 
     try {
-      // Chờ toàn bộ thao tác lưu trước khi nộp.
       await saveQueueRef.current;
 
-      // Gửi snapshot mới nhất một lần nữa để tránh mất đáp án.
       await attemptService.saveAnswers(
         attempt.id,
         answersRef.current
@@ -176,14 +171,12 @@ export default function AssessmentPlayer({
 
       await attemptService.submit(attempt.id);
 
-      // Lấy kết quả đã được server chấm.
       const finalResult = await scoringService.getResult(attempt.id);
 
       setResult(finalResult);
       setStatus("completed");
       onComplete?.(finalResult);
     } catch (err) {
-      // Nếu server chưa xác nhận đã nộp, cho phép thử lại.
       submittedRef.current = false;
       setStatus("ready");
 

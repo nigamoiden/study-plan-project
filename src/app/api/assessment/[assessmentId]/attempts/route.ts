@@ -48,7 +48,6 @@ export async function POST(request: NextRequest, context: Context) {
         activeAttemptId: null,
       };
 
-      // Tiếp tục lượt thi đang hoạt động nếu còn thời gian.
       if (stats.activeAttemptId) {
         const activeRef = adminDb
           .collection("assessmentAttempts")

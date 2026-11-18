@@ -3,7 +3,11 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { lessonSchema } from "@/features/learning-content/schemas/content.schema";
 import { isSubjectName } from "@/features/learning-content/constants";
-import type { Lesson } from "@/features/learning-content/types/content.types";
+import type {
+  Lesson,
+  LessonExercise,
+  ExerciseType,
+} from "@/features/learning-content/types/content.types";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
 import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
@@ -24,8 +28,37 @@ function toIsoString(value: unknown): string | null {
 
 function serializeLesson(
   id: string,
-  data: FirebaseFirestore.DocumentData
+  data: FirebaseFirestore.DocumentData,
+  includeAnswers: boolean
 ): Lesson {
+  const exercises: LessonExercise[] = Array.isArray(data.exercises)
+    ? data.exercises.map((exercise: Record<string, unknown>) => {
+        const id = String(exercise.id ?? "");
+        const type = String(exercise.type) as ExerciseType;
+        const prompt = String(exercise.prompt ?? "");
+        const options = Array.isArray(exercise.options)
+          ? exercise.options.map(String)
+          : undefined;
+        const publicExercise = {
+          id,
+          type,
+          prompt,
+          options,
+        };
+        return includeAnswers
+          ? {
+              ...publicExercise,
+              correctAnswer: typeof exercise.correctAnswer === "string"
+                ? exercise.correctAnswer
+                : "",
+              explanation: typeof exercise.explanation === "string"
+                ? exercise.explanation
+                : "",
+            }
+          : publicExercise;
+      })
+    : [];
+
   return {
     id,
     title: data.title,
@@ -33,7 +66,8 @@ function serializeLesson(
     subject: data.subject,
     topic: data.topic,
     blocks: data.blocks,
-    exercises: data.exercises,
+    exercises,
+    answerVisible: includeAnswers,
     createdBy: data.createdBy,
     createdAt: toIsoString(data.createdAt),
     updatedAt: toIsoString(data.updatedAt),
@@ -82,7 +116,7 @@ export async function GET(request: NextRequest) {
             (!subjectFilter || subject === subjectFilter)
           );
         })
-        .map((document) => serializeLesson(document.id, document.data()))
+        .map((document) => serializeLesson(document.id, document.data(), role !== "student"))
         .filter((lesson) => {
           return (
             !topicFilter ||
@@ -101,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await query.limit(200).get();
     const lessons = snapshot.docs
-      .map((document) => serializeLesson(document.id, document.data()))
+      .map((document) => serializeLesson(document.id, document.data(), true))
       .filter((lesson) => {
         return (
           (!subjectFilter || lesson.subject === subjectFilter) &&

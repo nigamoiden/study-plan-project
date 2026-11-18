@@ -11,7 +11,13 @@ import type {
 import { getLesson } from "../services/lesson.service";
 import { SketchDrawing } from "./SketchEditor";
 
-function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
+function ExerciseList({
+  exercises,
+  answerVisible,
+}: {
+  exercises: LessonExercise[];
+  answerVisible: boolean;
+}) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -63,11 +69,11 @@ function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
 
   function isCorrect(exercise: LessonExercise) {
     const answer = answers[exercise.id];
-    if (answer === undefined) return false;
+    if (answer === undefined || !exercise.correctAnswer) return false;
 
     if (exercise.type === "short_answer") {
       return answer.trim().toLocaleLowerCase() ===
-        exercise.correctAnswer.trim().toLocaleLowerCase();
+        exercise.correctAnswer?.trim().toLocaleLowerCase();
     }
 
     return answer === exercise.correctAnswer;
@@ -213,20 +219,21 @@ function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
             />
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                setRevealed((current) => ({
-                  ...current,
-                  [exercise.id]: !current[exercise.id],
-                }))
-              }
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white"
-            >
-              {revealed[exercise.id] ? "Ẩn đáp án" : "Xem đáp án và giải thích"}
-            </button>
-            {exercise.type !== "essay" &&
+          {answerVisible && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setRevealed((current) => ({
+                    ...current,
+                    [exercise.id]: !current[exercise.id],
+                  }))
+                }
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                {revealed[exercise.id] ? "Ẩn đáp án" : "Xem đáp án và giải thích"}
+              </button>
+              {exercise.type !== "essay" &&
               answers[exercise.id] !== undefined &&
               revealed[exercise.id] && (
                 <span
@@ -239,9 +246,10 @@ function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
                     : "Chưa chính xác, hãy xem phần giải thích."}
                 </span>
               )}
-          </div>
+            </div>
+          )}
 
-          {revealed[exercise.id] && (
+          {answerVisible && revealed[exercise.id] && (
             <div className="mt-4 rounded-lg bg-violet-50 p-4 text-sm">
               <p>
                 <strong>Đáp án:</strong>{" "}
@@ -380,7 +388,10 @@ export default function LessonViewer({ lessonId }: { lessonId: string }) {
         ))}
       </div>
 
-      <ExerciseList exercises={lesson.exercises} />
+      <ExerciseList
+        exercises={lesson.exercises}
+        answerVisible={lesson.answerVisible !== false}
+      />
     </main>
   );
 }

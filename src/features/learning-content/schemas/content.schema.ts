@@ -144,6 +144,6 @@ export const focusSubjectsSchema = z.object({
     .refine((subjects) => new Set(subjects).size === subjects.length, {
       message: "Môn học không được chọn trùng.",
     }),
-});
+}).strict();
 
 export type LessonInput = z.infer<typeof lessonSchema>;

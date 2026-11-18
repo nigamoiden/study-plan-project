@@ -117,7 +117,6 @@ export async function POST(request: NextRequest, context: Context) {
         .collection("assessmentResults")
         .doc(attemptId);
 
-      // Idempotency: nộp lại không tạo kết quả thứ hai.
       const existingResultSnap = await tx.get(resultRef);
 
       if (existingResultSnap.exists) {

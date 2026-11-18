@@ -4,7 +4,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Study Plan | Lộ trình học tập của bạn",
+  title: "Minh Nhật Béo | Lộ trình học tập của bạn",
   description:
     "Thiết lập mục tiêu, xây dựng lộ trình học tập cá nhân và theo dõi tiến độ mỗi ngày.",
 };

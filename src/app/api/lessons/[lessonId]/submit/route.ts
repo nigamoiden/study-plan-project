@@ -5,13 +5,15 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
 import { gradeWithAI, isAIGradingConfigured } from "@/server/grading/ai-grader";
+import { containsClientIdentityField } from "@/server/auth/identity-guard";
+import { checkRateLimit } from "@/server/security/rate-limit";
 
 const submitSchema = z.object({
   answers: z.array(z.object({
     exerciseId: z.string().min(1).max(100),
     answer: z.string().trim().max(10000),
-  })).min(1).max(100),
-});
+  }).strict()).min(1).max(100),
+}).strict();
 
 export async function POST(request: NextRequest, context: { params: Promise<{ lessonId: string }> }) {
   const origin = request.headers.get("origin");
@@ -24,7 +26,29 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
     return NextResponse.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
   }
 
-  const parsed = submitSchema.safeParse(await request.json().catch(() => null));
+  const limit = checkRateLimit(`lesson-submit:${user.uid}`, 20, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Bạn đang nộp bài quá nhanh. Vui lòng thử lại sau." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Dữ liệu bài nộp không hợp lệ." }, { status: 400 });
+  }
+
+  if (containsClientIdentityField(body)) {
+    return NextResponse.json(
+      { error: "Không được gửi ID người dùng trong nội dung yêu cầu." },
+      { status: 400 }
+    );
+  }
+
+  const parsed = submitSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Danh sách câu trả lời không hợp lệ." }, { status: 400 });
   }

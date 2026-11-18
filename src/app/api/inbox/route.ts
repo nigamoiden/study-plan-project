@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
@@ -27,4 +27,29 @@ export async function GET() {
   });
 
   return NextResponse.json({ messages });
+}
+
+export async function PATCH(request: NextRequest) {
+  const user = await requireUser();
+  if (!user) {
+    return NextResponse.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null) as
+    | { messageId?: string; read?: boolean }
+    | null;
+  const messageId = body?.messageId;
+
+  if (!messageId || messageId.length > 128) {
+    return NextResponse.json({ error: "Thông báo không hợp lệ." }, { status: 400 });
+  }
+
+  await adminDb
+    .collection("users")
+    .doc(user.uid)
+    .collection("inbox")
+    .doc(messageId)
+    .set({ read: body?.read ?? true }, { merge: true });
+
+  return NextResponse.json({ success: true });
 }

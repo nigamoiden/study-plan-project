@@ -32,12 +32,12 @@ export default function HomePage() {
     <main className="min-h-screen overflow-hidden bg-[#fbfaff] text-slate-950">
       <header className="relative z-10 border-b border-violet-100/80 bg-white/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-2.5" aria-label="Study Plan - Trang chủ">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="Minh Nhật Béo - Trang chủ">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-700 text-lg font-black text-white">
-              S
+              M
             </span>
             <span className="text-lg font-extrabold tracking-tight">
-              study<span className="text-violet-700">plan</span>
+              minh nhật <span className="text-violet-700">béo</span>
             </span>
           </Link>
 
@@ -81,7 +81,7 @@ export default function HomePage() {
               <span className="text-violet-700">kế hoạch rõ ràng.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              Study Plan giúp bạn xác định mục tiêu, sắp xếp việc học thành từng
+              Minh Nhật Béo giúp bạn xác định mục tiêu, sắp xếp việc học thành từng
               bước nhỏ và theo dõi tiến độ của chính mình.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -250,7 +250,7 @@ export default function HomePage() {
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>© {new Date().getFullYear()} Study Plan</p>
+          <p>© {new Date().getFullYear()} Minh Nhật Béo</p>
           <p>Lập kế hoạch tốt hơn. Học tập chủ động hơn.</p>
         </div>
       </footer>

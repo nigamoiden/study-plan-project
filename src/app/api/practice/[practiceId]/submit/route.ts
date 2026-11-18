@@ -6,6 +6,8 @@ import { adminDb } from "@/lib/firebase/admin";
 import { getPracticeItemById } from "@/server/practice/catalog";
 import { requireUser } from "@/server/auth/require-user";
 import { gradePracticeAttempt } from "@/server/practice/grader";
+import { containsClientIdentityField } from "@/server/auth/identity-guard";
+import { checkRateLimit } from "@/server/security/rate-limit";
 
 type Context = {
   params: Promise<{ practiceId: string }>;
@@ -21,9 +23,9 @@ const submitPracticeSchema = z.object({
         z.number(),
         z.null(),
       ]),
-    })
+    }).strict()
   ).max(50),
-});
+}).strict();
 
 export async function POST(request: Request, context: Context) {
   const user = await requireUser();
@@ -32,6 +34,14 @@ export async function POST(request: Request, context: Context) {
     return NextResponse.json(
       { error: "Phiên đăng nhập đã hết hạn." },
       { status: 401 }
+    );
+  }
+
+  const limit = checkRateLimit(`practice-submit:${user.uid}`, 20, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Bạn đang nộp bài quá nhanh. Vui lòng thử lại sau." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
     );
   }
 
@@ -46,6 +56,12 @@ export async function POST(request: Request, context: Context) {
   }
 
   const body = await request.json().catch(() => ({}));
+  if (containsClientIdentityField(body)) {
+    return NextResponse.json(
+      { error: "Không được gửi ID người dùng trong nội dung yêu cầu." },
+      { status: 400 }
+    );
+  }
   const parsed = submitPracticeSchema.safeParse(body);
 
   if (!parsed.success) {

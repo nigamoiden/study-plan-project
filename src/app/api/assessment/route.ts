@@ -98,9 +98,6 @@ export async function POST(request: NextRequest) {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Không nhận answer key từ client ở API này.
-    // Đáp án được thêm bằng API quản trị riêng ở phần tiếp theo.
-
     batch.set(answerKeyRef, {
         assessmentId: assessmentRef.id,
         answerKeys: input.answerKeys,

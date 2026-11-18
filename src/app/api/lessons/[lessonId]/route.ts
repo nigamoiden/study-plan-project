@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { adminDb } from "@/lib/firebase/admin";
-import type { Lesson } from "@/features/learning-content/types/content.types";
+import type {
+  Lesson,
+  LessonExercise,
+  ExerciseType,
+} from "@/features/learning-content/types/content.types";
 import { requireUser } from "@/server/auth/require-user";
 
 type RouteContext = {
@@ -23,8 +27,37 @@ function toIsoString(value: unknown): string | null {
 
 function serializeLesson(
   id: string,
-  data: FirebaseFirestore.DocumentData
+  data: FirebaseFirestore.DocumentData,
+  includeAnswers: boolean
 ): Lesson {
+  const exercises: LessonExercise[] = Array.isArray(data.exercises)
+    ? data.exercises.map((exercise: Record<string, unknown>) => {
+        const id = String(exercise.id ?? "");
+        const type = String(exercise.type) as ExerciseType;
+        const prompt = String(exercise.prompt ?? "");
+        const options = Array.isArray(exercise.options)
+          ? exercise.options.map(String)
+          : undefined;
+        const publicExercise = {
+          id,
+          type,
+          prompt,
+          options,
+        };
+        return includeAnswers
+          ? {
+              ...publicExercise,
+              correctAnswer: typeof exercise.correctAnswer === "string"
+                ? exercise.correctAnswer
+                : "",
+              explanation: typeof exercise.explanation === "string"
+                ? exercise.explanation
+                : "",
+            }
+          : publicExercise;
+      })
+    : [];
+
   return {
     id,
     title: data.title,
@@ -32,7 +65,8 @@ function serializeLesson(
     subject: data.subject,
     topic: data.topic,
     blocks: data.blocks,
-    exercises: data.exercises,
+    exercises,
+    answerVisible: includeAnswers,
     createdBy: data.createdBy,
     createdAt: toIsoString(data.createdAt),
     updatedAt: toIsoString(data.updatedAt),
@@ -77,7 +111,13 @@ export async function GET(_: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Không có quyền truy cập bài học này." }, { status: 403 });
     }
 
-    return NextResponse.json({ lesson: serializeLesson(lessonSnapshot.id, lessonData) });
+    return NextResponse.json({
+      lesson: serializeLesson(
+        lessonSnapshot.id,
+        lessonData,
+        role !== "student"
+      ),
+    });
   } catch (error) {
     console.error("Get lesson error:", error);
     return NextResponse.json(

@@ -29,7 +29,6 @@ export async function GET(request: NextRequest, context: Context) {
 
     const data = snap.data()!;
 
-    // Học sinh chỉ được xem đề đã xuất bản.
     if (
       data.status !== "published" &&
       data.createdBy !== user.uid
@@ -40,7 +39,6 @@ export async function GET(request: NextRequest, context: Context) {
       }
     }
 
-    // Tuyệt đối không trả answerKeys trong response.
     return NextResponse.json({
       assessment: {
         id: snap.id,
@@ -119,7 +117,6 @@ export async function PATCH(request: NextRequest, context: Context) {
       );
     }
 
-    // Không cho sửa answerKeys qua endpoint này.
     delete updateData.answerKeys;
 
     await ref.update(updateData);

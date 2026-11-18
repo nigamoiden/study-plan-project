@@ -120,7 +120,6 @@ export async function POST(request: NextRequest) {
       data.questions.map((q) => [q.id, q])
     );
 
-    // Kiểm tra cấu trúc câu hỏi.
     for (const question of data.questions) {
       if (question.type === "multiple_choice") {
         if (
@@ -151,7 +150,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Kiểm tra đáp án chuẩn.
     for (const key of data.answerKeys) {
       const question = questionById.get(
         key.questionId

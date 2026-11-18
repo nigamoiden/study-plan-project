@@ -5,12 +5,13 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
 import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { containsClientIdentityField } from "@/server/auth/identity-guard";
 
 const revisionSchema = z.object({
   score: z.number().min(0).max(100).optional(),
   feedback: z.string().trim().min(1).max(10000),
   exerciseId: z.string().min(1).max(100).optional(),
-});
+}).strict();
 
 export async function POST(request: NextRequest, context: { params: Promise<{ reviewId: string }> }) {
   const user = await requireUser();
@@ -19,7 +20,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ re
   }
 
   await requireTeacherOrAdmin(user.uid);
-  const parsed = revisionSchema.safeParse(await request.json().catch(() => null));
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Nội dung sửa bài không hợp lệ." }, { status: 400 });
+  }
+
+  if (containsClientIdentityField(body)) {
+    return NextResponse.json(
+      { error: "Không được gửi ID người dùng trong nội dung yêu cầu." },
+      { status: 400 }
+    );
+  }
+
+  const parsed = revisionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Nội dung sửa bài không hợp lệ." }, { status: 400 });
   }

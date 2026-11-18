@@ -63,8 +63,8 @@ export interface LessonExercise {
   type: ExerciseType;
   prompt: string;
   options?: string[];
-  correctAnswer: string;
-  explanation: string;
+  correctAnswer?: string;
+  explanation?: string;
 }
 
 export interface LessonDraft {
@@ -81,4 +81,5 @@ export interface Lesson extends LessonDraft {
   createdBy: string;
   createdAt: string | null;
   updatedAt: string | null;
+  answerVisible?: boolean;
 }
