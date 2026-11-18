@@ -12,6 +12,7 @@ import {
   onAuthStateChanged,
   User,
 } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 import { auth } from "@/lib/firebase/client";
 
@@ -33,20 +34,12 @@ export function AuthProvider({
   const [user, setUser] = useState<User | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    let isInitialAuthState = true;
-
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
-        if (!isInitialAuthState) {
-          setUser(currentUser);
-          return;
-        }
-
-        isInitialAuthState = false;
-
         try {
           if (currentUser) {
             const idToken = await currentUser.getIdToken();
@@ -56,11 +49,36 @@ export function AuthProvider({
               headers: {
                 "Content-Type": "application/json",
               },
+              credentials: "same-origin",
               body: JSON.stringify({ idToken }),
             });
 
             if (!response.ok) {
               throw new Error("Không thể khôi phục phiên đăng nhập");
+            }
+
+            if (
+              window.location.pathname === "/login" ||
+              window.location.pathname === "/register"
+            ) {
+              const profileResponse = await fetch("/api/auth/me", {
+                credentials: "same-origin",
+              });
+              if (profileResponse.ok) {
+                const profile = await profileResponse.json() as {
+                  role?: "student" | "teacher" | "admin";
+                  onboardingCompleted?: boolean;
+                };
+                const destination =
+                  profile.role === "admin"
+                    ? "/dashboard"
+                    : profile.role === "teacher"
+                      ? "/teacher/dashboard"
+                      : profile.onboardingCompleted
+                        ? "/student-dashboard"
+                        : "/onboarding";
+                router.replace(destination);
+              }
             }
           }
 
@@ -75,7 +93,7 @@ export function AuthProvider({
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

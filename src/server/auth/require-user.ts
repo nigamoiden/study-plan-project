@@ -21,6 +21,10 @@ export async function requireUser() {
 
     return decodedToken;
   } catch {
-    return null;
+    try {
+      return await adminAuth.verifyIdToken(sessionCookie, true);
+    } catch {
+      return null;
+    }
   }
 }

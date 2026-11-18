@@ -69,10 +69,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionCookie = await adminAuth.createSessionCookie(
-      idToken,
-      { expiresIn: EXPIRES_IN }
-    );
+    let sessionCookie: string;
+    let cookieMaxAge = EXPIRES_IN / 1000;
+
+    try {
+      sessionCookie = await adminAuth.createSessionCookie(
+        idToken,
+        { expiresIn: EXPIRES_IN }
+      );
+    } catch (error) {
+      console.error("Session cookie fallback:", error);
+      sessionCookie = idToken;
+      cookieMaxAge = 60 * 60;
+    }
 
     const userRef = adminDb
       .collection("users")
@@ -107,7 +116,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: EXPIRES_IN / 1000,
+      maxAge: cookieMaxAge,
     });
 
     return response;
