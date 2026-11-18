@@ -63,6 +63,7 @@ export interface OnboardingData {
   academicHistory: AcademicHistory;
   studyFrequency: StudyFrequency;
   diagnosticTest: DiagnosticResult;
+  focusSubjects: SubjectName[];
 }
 
 export interface OnboardingStepProps {

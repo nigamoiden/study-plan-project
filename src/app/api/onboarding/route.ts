@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
         },
 
         onboardingCompleted: true,
+        focusSubjects: data.focusSubjects,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }

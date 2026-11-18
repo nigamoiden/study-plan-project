@@ -8,6 +8,7 @@ import AcademicGoalStep from "./AcademicGoalStep";
 import AcademicHistoryStep from "./AcademicHistoryStep";
 import StudyFrequencyStep from "./StudyFrequencyStep";
 import DiagnosticTestStep from "./DiagnosticTestStep";
+import FocusSubjectsStep from "./FocusSubjectsStep";
 import OnboardingSummary from "./OnboardingSummary";
 
 import { saveOnboarding } from "../services/onboarding.service";
@@ -48,6 +49,8 @@ const initialData: OnboardingData = {
     correctAnswers: 0,
     score: 0,
   },
+
+  focusSubjects: [],
 };
 
 const stepTitles = [
@@ -55,6 +58,7 @@ const stepTitles = [
   "Học lực",
   "Thói quen",
   "Kiểm tra",
+  "Môn tập trung",
   "Xác nhận",
 ];
 
@@ -66,7 +70,7 @@ export default function OnboardingWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const totalSteps = 5;
+  const totalSteps = stepTitles.length;
   const progress = ((step + 1) / totalSteps) * 100;
 
   function updateData(values: Partial<OnboardingData>) {
@@ -152,7 +156,7 @@ export default function OnboardingWizard() {
             />
           </div>
 
-          <div className="mt-4 grid grid-cols-5 gap-1">
+          <div className="mt-4 grid grid-cols-6 gap-1">
             {stepTitles.map((title, index) => (
               <div
                 key={title}
@@ -189,6 +193,10 @@ export default function OnboardingWizard() {
           )}
 
           {step === 4 && (
+            <FocusSubjectsStep {...commonProps} />
+          )}
+
+          {step === 5 && (
             <OnboardingSummary
               data={data}
               onBack={previousStep}

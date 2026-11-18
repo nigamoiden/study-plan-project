@@ -47,7 +47,7 @@ export default function OnboardingSummary({
   return (
     <section>
       <p className="mb-2 text-sm font-semibold text-violet-600">
-        BƯỚC 05
+        BƯỚC 06
       </p>
 
       <h2 className="text-2xl font-bold">
@@ -144,6 +144,20 @@ export default function OnboardingSummary({
               </p>
             </>
           )}
+        </div>
+
+        <div className="rounded-xl border border-slate-200 p-5">
+          <h3 className="mb-3 font-bold">Môn cần tập trung</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.focusSubjects.map((subject) => (
+              <span
+                key={subject}
+                className="rounded-full bg-violet-50 px-3 py-1 text-sm font-medium text-violet-700"
+              >
+                {subjectLabels[subject]}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 

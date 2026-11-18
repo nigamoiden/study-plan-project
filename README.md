@@ -78,10 +78,21 @@ quyền quản trị, bài làm và lộ trình được xử lý qua API server
 
 - Đăng ký/đăng nhập, xác minh email, Google login và session cookie HttpOnly.
 - Onboarding với mục tiêu, học lực, lịch học và bài kiểm tra đầu vào được chấm
-  ở server.
+  ở server; sau khảo sát, học sinh chọn các môn cần tập trung.
 - Sinh và lưu lộ trình 4 tuần theo hồ sơ, đánh dấu nhiệm vụ hoàn thành và lưu
   kết quả luyện tập trong Firestore.
 - Practice API yêu cầu session; answer key không được gửi xuống client.
+- Giáo viên/quản trị viên có role tương ứng có thể đăng bài tại
+  `/teacher/lessons`. Bài gồm lý thuyết, ảnh HTTPS, hình phác họa hình học,
+  mô phỏng nhúng từ PhET/GeoGebra và bài tập trắc nghiệm, đúng/sai, trả lời
+  ngắn hoặc tự luận, kèm đáp án/giải thích.
+- Học sinh xem `/lessons`; API chỉ trả bài đã đăng thuộc môn trong
+  `users/{uid}.focusSubjects`. Có thể đổi môn tập trung tại thư viện bài học.
+
+Ảnh hiện được nhúng bằng URL HTTPS, chưa có tải file lên Storage. Mô phỏng chỉ
+cho phép nhúng từ `phet.colorado.edu` và `geogebra.org`. Tài khoản mới mặc định
+có role `student`; role `teacher`/`admin` cần được cấp riêng trong hồ sơ người
+dùng bằng quy trình quản trị tin cậy.
 
 ## Giới hạn cần biết
 

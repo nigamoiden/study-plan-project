@@ -1,4 +1,5 @@
 import { getDashboardMetrics } from "../services/admin.service";
+import Link from "next/link";
 import ContentManagement from "./ContentManagement";
 import GradingReview from "./GradingReview";
 import QuestionManagement from "./QuestionManagement";
@@ -21,9 +22,12 @@ export default function AdminDashboard() {
           </h1>
         </div>
 
-        <button className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">
-          Xuất báo cáo
-        </button>
+        <Link
+          href="/teacher/lessons"
+          className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+        >
+          Quản lý bài học
+        </Link>
       </header>
 
       <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

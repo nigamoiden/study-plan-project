@@ -1,5 +1,6 @@
 
 import { z } from "zod";
+import { SUBJECT_NAMES } from "@/features/learning-content/constants";
 
 const subjectHistorySchema = z.object({
   subject: z.enum([
@@ -54,6 +55,11 @@ export const onboardingSchema = z.object({
     correctAnswers: z.number().int().min(0).max(50),
     score: z.number().min(0).max(100),
   }),
+
+  focusSubjects: z
+    .array(z.enum(SUBJECT_NAMES))
+    .min(1, "Hãy chọn ít nhất một môn cần tập trung.")
+    .max(SUBJECT_NAMES.length),
 });
 
 export type OnboardingFormData = z.infer<

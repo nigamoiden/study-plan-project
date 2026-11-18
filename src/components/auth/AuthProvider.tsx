@@ -35,14 +35,23 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isInitialAuthState = true;
+
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
+        if (!isInitialAuthState) {
+          setUser(currentUser);
+          return;
+        }
+
+        isInitialAuthState = false;
+
         try {
           if (currentUser) {
             const idToken = await currentUser.getIdToken();
 
-            await fetch("/api/auth/session", {
+            const response = await fetch("/api/auth/session", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -50,14 +59,12 @@ export function AuthProvider({
               body: JSON.stringify({ idToken }),
             });
 
-            setUser(currentUser);
-          } else {
-            setUser(null);
-
-            await fetch("/api/auth/logout", {
-              method: "POST",
-            });
+            if (!response.ok) {
+              throw new Error("Không thể khôi phục phiên đăng nhập");
+            }
           }
+
+          setUser(currentUser);
         } catch (error) {
           console.error("Auth state error:", error);
           setUser(null);

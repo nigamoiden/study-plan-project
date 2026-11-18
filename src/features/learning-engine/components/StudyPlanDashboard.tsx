@@ -98,6 +98,12 @@ export default function StudyPlanDashboard({
         </div>
         <nav className="flex flex-wrap gap-3 text-sm font-medium">
           <Link
+            href="/lessons"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-violet-200 hover:text-violet-700"
+          >
+            Thư viện bài học
+          </Link>
+          <Link
             href="/assessments"
             className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-violet-200 hover:text-violet-700"
           >
