@@ -7,6 +7,7 @@ import {
   HttpError,
 } from "@/server/assessment/http";
 import { gradeAttempt } from "@/server/assessment/scoring";
+import { finishEssayGradingWithAI } from "@/server/assessment/ai-grading";
 import { saveAnswersSchema } from "@/features/assessment/schemas/question.schema";
 
 type Context = {
@@ -207,6 +208,16 @@ export async function POST(request: NextRequest, context: Context) {
         alreadySubmitted: false,
       };
     });
+
+    if (!result.alreadySubmitted) {
+      const aiResult = await finishEssayGradingWithAI(attemptId);
+      if (aiResult) {
+        result.result = {
+          ...result.result,
+          ...aiResult,
+        };
+      }
+    }
 
     return NextResponse.json(result);
   } catch (error) {

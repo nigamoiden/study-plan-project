@@ -209,7 +209,7 @@ export async function ensureStudyPlan(uid: string): Promise<StudyPlan> {
   const userRef = adminDb.collection("users").doc(uid);
   const planRef = userRef.collection("studyPlans").doc("current");
 
-  return adminDb.runTransaction(async (transaction) => {
+  const plan = await adminDb.runTransaction(async (transaction) => {
     const [planSnapshot, userSnapshot] = await Promise.all([
       transaction.get(planRef),
       transaction.get(userRef),
@@ -231,6 +231,51 @@ export async function ensureStudyPlan(uid: string): Promise<StudyPlan> {
     transaction.create(planRef, plan);
     return plan;
   });
+
+  const lessonSnapshot = await adminDb
+    .collection("lessons")
+    .where("status", "==", "published")
+    .limit(200)
+    .get();
+  const lessonsBySubject = new Map<SubjectName, FirebaseFirestore.DocumentData[]>();
+
+  for (const document of lessonSnapshot.docs) {
+    const lesson = document.data();
+    if (!lesson.subject) continue;
+    const subjectLessons = lessonsBySubject.get(lesson.subject as SubjectName) ?? [];
+    subjectLessons.push({ id: document.id, ...lesson });
+    lessonsBySubject.set(lesson.subject as SubjectName, subjectLessons);
+  }
+
+  let changed = false;
+  const tasks = plan.tasks.map((task) => {
+    if (task.lessonId) return task;
+    const lesson = lessonsBySubject
+      .get(task.subject)
+      ?.find((item) => item.status === "published");
+
+    if (!lesson) return task;
+    changed = true;
+    return {
+      ...task,
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      title: task.kind === "learn"
+        ? `Học: ${lesson.title}`
+        : `Làm bài tập: ${lesson.title}`,
+      description: task.kind === "learn"
+        ? `${lesson.topic}: ${lesson.description || "Học kiến thức được giáo viên đăng tải."}`
+        : `Hoàn thành các bài tập trong bài “${lesson.title}” sau khi xem xong kiến thức.`,
+    };
+  });
+
+  if (changed) {
+    const linkedPlan = { ...plan, tasks };
+    await planRef.update({ tasks });
+    return linkedPlan;
+  }
+
+  return plan;
 }
 
 export async function completeStudyTask(

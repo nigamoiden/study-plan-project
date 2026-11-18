@@ -7,8 +7,18 @@ import SubjectManagement from "./SubjectManagement";
 import TeacherManagement from "./TeacherManagement";
 import UserManagement from "./UserManagement";
 
-export default function AdminDashboard() {
-  const metrics = getDashboardMetrics();
+export default function AdminDashboard({
+  realMetrics,
+}: {
+  realMetrics?: Array<{
+    label: string;
+    value: string;
+    description: string;
+    trend: string;
+    positive: boolean;
+  }>;
+}) {
+  const metrics = realMetrics ?? getDashboardMetrics();
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

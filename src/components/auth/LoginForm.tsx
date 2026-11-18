@@ -25,7 +25,20 @@ export default function LoginForm() {
 
       await loginUser({ email, password });
 
-      router.push("/student-dashboard");
+      const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+      const data = await response.json() as {
+        role?: "student" | "teacher" | "admin";
+        onboardingCompleted?: boolean;
+      };
+      router.push(
+        data.role === "admin"
+          ? "/dashboard"
+          : data.role === "teacher"
+            ? "/teacher/dashboard"
+            : data.onboardingCompleted
+              ? "/student-dashboard"
+              : "/onboarding"
+      );
       router.refresh();
     } catch (err: unknown) {
       const firebaseError = err as { code?: string };

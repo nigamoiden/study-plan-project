@@ -24,6 +24,9 @@ liệu học tập dùng Firebase Admin/Firestore.
    FIREBASE_PROJECT_ID=
    FIREBASE_CLIENT_EMAIL=
    FIREBASE_PRIVATE_KEY=
+   AI_GRADING_API_KEY=
+   AI_GRADING_API_URL=https://api.openai.com/v1/chat/completions
+   AI_GRADING_MODEL=gpt-4o-mini
    ```
 
    `FIREBASE_PRIVATE_KEY` phải là private key của service account; giữ bí mật và
@@ -98,9 +101,12 @@ dùng bằng quy trình quản trị tin cậy.
 
 - Bài tập hiện là catalog mẫu trong mã nguồn; cần CMS và lưu nội dung thật trước
   khi dùng cho nhiều lớp/học sinh.
-- Chấm bài tự luận hiện là heuristic/rubric ở server, **chưa kết nối mô hình AI**.
-  Không gửi bài làm học sinh tới dịch vụ AI bên ngoài khi chưa có lựa chọn nhà
-  cung cấp, cấu hình và thông báo quyền riêng tư phù hợp.
+- Chấm bài tự luận hỗ trợ AI qua API tương thích OpenAI chat completions bằng
+  `AI_GRADING_API_KEY`, `AI_GRADING_API_URL` và `AI_GRADING_MODEL`. Khi chưa cấu
+  hình hoặc dịch vụ AI không phản hồi, hệ thống giữ rubric/heuristic trên server
+  làm fallback. Khi AI được bật, dữ liệu prompt, rubric và câu trả lời được gửi
+  đến nhà cung cấp đã cấu hình; cần thông báo quyền riêng tư và chính sách lưu giữ
+  dữ liệu phù hợp trước khi triển khai ngoài môi trường kiểm thử.
 - Lộ trình hiện tạo khung nhiệm vụ theo môn và mức độ học lực; chưa tích hợp thư
   viện bài giảng phong phú, lịch sử mastery chi tiết hay điều chỉnh tự động theo
   từng kết quả assessment.

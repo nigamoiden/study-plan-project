@@ -14,6 +14,52 @@ import { SketchDrawing } from "./SketchEditor";
 function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitResult, setSubmitResult] = useState<{
+    score: number;
+    status: string;
+    details: Array<{ exerciseId: string; score: number; feedback: string }>;
+  } | null>(null);
+
+  async function submitExercises() {
+    const missing = exercises.filter((exercise) => {
+      const answer = answers[exercise.id];
+      return answer === undefined || answer.trim().length === 0;
+    });
+    if (missing.length > 0) {
+      setSubmitError(`Còn ${missing.length} câu chưa trả lời.`);
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const response = await fetch(`${window.location.pathname}/submit`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answers: exercises.map((exercise) => ({
+            exerciseId: exercise.id,
+            answer: answers[exercise.id] ?? "",
+          })),
+        }),
+      });
+      const data = await response.json() as {
+        result?: typeof submitResult;
+        error?: string;
+      };
+      if (!response.ok || !data.result) {
+        throw new Error(data.error ?? "Không thể nộp bài tập.");
+      }
+      setSubmitResult(data.result);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Không thể nộp bài tập.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   function isCorrect(exercise: LessonExercise) {
     const answer = answers[exercise.id];
@@ -28,7 +74,7 @@ function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
   }
 
   return (
-    <section className="mt-10 space-y-5">
+    <section id="bai-tap" className="mt-10 space-y-5">
       <div>
         <h2 className="text-2xl font-bold">Bài tập</h2>
         <p className="mt-1 text-sm text-slate-500">
@@ -74,6 +120,48 @@ function ExerciseList({ exercises }: { exercises: LessonExercise[] }) {
                   <span>{option}</span>
                 </label>
               ))}
+
+              {submitError && (
+                <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                  {submitError}
+                </p>
+              )}
+
+              <div className="flex flex-col gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-bold text-slate-900">Nộp bài luyện tập</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Câu tự luận sẽ được AI chấm sơ bộ rồi gửi cho giáo viên xác nhận.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void submitExercises()}
+                  disabled={submitting}
+                  className="rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
+                >
+                  {submitting ? "Đang chấm..." : "Nộp bài"}
+                </button>
+              </div>
+
+              {submitResult && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                  <p className="text-sm font-semibold text-emerald-700">
+                    {submitResult.status === "pending_teacher_review"
+                      ? "Đang chờ giáo viên xác nhận"
+                      : "Đã chấm xong"}
+                  </p>
+                  <p className="mt-1 text-3xl font-bold text-slate-900">{submitResult.score}%</p>
+                  <div className="mt-4 space-y-2">
+                    {submitResult.details.map((detail, index) => (
+                      <div key={detail.exerciseId} className="rounded-lg bg-white p-3 text-sm">
+                        <p className="font-semibold">Câu {index + 1}: {detail.score}%</p>
+                        <p className="mt-1 text-slate-600">{detail.feedback}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

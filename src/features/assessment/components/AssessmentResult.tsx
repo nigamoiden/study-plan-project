@@ -38,7 +38,7 @@ export default function AssessmentResult({
 
         {isPending && (
           <div className="mt-5 rounded-xl bg-yellow-50 p-3 text-sm text-yellow-800">
-            Một số câu tự luận đang chờ giáo viên hoặc hệ thống chấm điểm.
+            Một số câu tự luận đang chờ giáo viên hoặc hệ thống AI chấm điểm.
             Kết quả hiện tại có thể chưa phải điểm cuối cùng.
           </div>
         )}

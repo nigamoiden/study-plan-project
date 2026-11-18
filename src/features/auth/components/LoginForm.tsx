@@ -67,7 +67,20 @@ export default function LoginForm() {
 
     try {
       await loginUser(validation.data);
-      router.replace("/student-dashboard");
+      const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+      const data = await response.json() as {
+        role?: "student" | "teacher" | "admin";
+        onboardingCompleted?: boolean;
+      };
+      const destination =
+        data.role === "admin"
+          ? "/dashboard"
+          : data.role === "teacher"
+            ? "/teacher/dashboard"
+            : data.onboardingCompleted
+              ? "/student-dashboard"
+              : "/onboarding";
+      router.replace(destination);
       router.refresh();
     } catch (err) {
       const code =

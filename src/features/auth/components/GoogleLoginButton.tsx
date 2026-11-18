@@ -58,7 +58,20 @@ export default function GoogleLoginButton({
 
     try {
       await loginWithGoogle();
-      router.replace(redirectTo);
+      const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+      const data = await response.json() as {
+        role?: "student" | "teacher" | "admin";
+        onboardingCompleted?: boolean;
+      };
+      const destination =
+        data.role === "admin"
+          ? "/dashboard"
+          : data.role === "teacher"
+            ? "/teacher/dashboard"
+            : data.onboardingCompleted
+              ? redirectTo
+              : "/onboarding";
+      router.replace(destination);
       router.refresh();
     } catch (err) {
       setError(getGoogleLoginError(err));

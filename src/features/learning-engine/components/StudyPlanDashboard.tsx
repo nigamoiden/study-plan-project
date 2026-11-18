@@ -104,6 +104,18 @@ export default function StudyPlanDashboard({
             Thư viện bài học
           </Link>
           <Link
+            href="/progress"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-violet-200 hover:text-violet-700"
+          >
+            Tiến độ
+          </Link>
+          <Link
+            href="/today"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-violet-200 hover:text-violet-700"
+          >
+            Hôm nay
+          </Link>
+          <Link
             href="/assessments"
             className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-violet-200 hover:text-violet-700"
           >
@@ -114,6 +126,12 @@ export default function StudyPlanDashboard({
             className="rounded-full bg-violet-700 px-4 py-2 text-white hover:bg-violet-800"
           >
             Luyện tập
+          </Link>
+          <Link
+            href="/inbox"
+            className="rounded-full border border-violet-200 bg-white px-4 py-2 text-violet-700"
+          >
+            Hộp thư
           </Link>
         </nav>
       </header>
@@ -226,22 +244,39 @@ export default function StudyPlanDashboard({
                               Khoảng {task.durationMinutes} phút
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            disabled={task.completed || updatingTaskId !== null}
-                            onClick={() => void completeTask(task.id)}
-                            className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold ${
-                              task.completed
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-violet-700 text-white hover:bg-violet-800 disabled:opacity-50"
-                            }`}
-                          >
-                            {task.completed
-                              ? "Hoàn thành"
-                              : updatingTaskId === task.id
-                                ? "Đang lưu..."
-                                : "Đánh dấu xong"}
-                          </button>
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            {task.lessonId ? (
+                              <Link
+                                href={`/lessons/${encodeURIComponent(task.lessonId)}${task.kind === "practice" ? "#bai-tap" : ""}`}
+                                className="rounded-xl bg-violet-700 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-800"
+                              >
+                                {task.kind === "learn" ? "Mở bài học" : "Làm bài tập"}
+                              </Link>
+                            ) : (
+                              <Link
+                                href="/lessons"
+                                className="rounded-xl border border-violet-200 px-3 py-2 text-sm font-semibold text-violet-700"
+                              >
+                                Chọn bài học
+                              </Link>
+                            )}
+                            <button
+                              type="button"
+                              disabled={task.completed || updatingTaskId !== null}
+                              onClick={() => void completeTask(task.id)}
+                              className={`rounded-xl px-3 py-2 text-sm font-semibold ${
+                                task.completed
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "border border-slate-300 bg-white text-slate-700 hover:border-violet-300 disabled:opacity-50"
+                              }`}
+                            >
+                              {task.completed
+                                ? "Hoàn thành"
+                                : updatingTaskId === task.id
+                                  ? "Đang lưu..."
+                                  : "Đánh dấu xong"}
+                            </button>
+                          </div>
                         </div>
                       </article>
                     ))}

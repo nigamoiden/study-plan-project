@@ -5,6 +5,7 @@ import type {
   PracticeQuestion,
   PracticeQuestionGrade,
 } from "@/features/practice/types/practice.types";
+import { gradeWithAI } from "@/server/grading/ai-grader";
 
 function normalizeText(value: string): string {
   return value
@@ -111,6 +112,28 @@ function gradeEssay(
   };
 }
 
+async function gradeEssayWithFallback(
+  question: PracticeQuestion,
+  answer: string | boolean | number | null | undefined
+) {
+  const text = typeof answer === "string" ? answer : "";
+  const aiResult = await gradeWithAI({
+    prompt: question.prompt,
+    answer: text,
+    rubric: question.rubric ?? question.keywords ?? [],
+    maxScore: 100,
+  });
+
+  if (aiResult) {
+    return {
+      score: aiResult.score,
+      feedback: aiResult.feedback,
+    };
+  }
+
+  return gradeEssay(question, answer);
+}
+
 export async function gradePracticeAttempt(
   practice: PracticeItem,
   answers: PracticeAnswer[]
@@ -119,7 +142,9 @@ export async function gradePracticeAttempt(
     answers.map((answer) => [answer.questionId, answer.answer])
   );
 
-  const details: PracticeQuestionGrade[] = practice.questions.map((question) => {
+  const details: PracticeQuestionGrade[] = [];
+
+  for (const question of practice.questions) {
     const answer = answerMap.get(question.id);
 
     let result: { score: number; feedback: string };
@@ -132,18 +157,18 @@ export async function gradePracticeAttempt(
         result = gradeShortAnswer(question, answer);
         break;
       case "essay":
-        result = gradeEssay(question, answer);
+        result = await gradeEssayWithFallback(question, answer);
         break;
       default:
         result = { score: 0, feedback: "Loại câu hỏi chưa được hỗ trợ." };
     }
 
-    return {
+    details.push({
       questionId: question.id,
       score: result.score,
       feedback: result.feedback,
-    };
-  });
+    });
+  }
 
   const totalScore = Math.round(
     details.reduce((sum, detail) => sum + detail.score, 0) /

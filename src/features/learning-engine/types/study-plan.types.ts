@@ -16,6 +16,8 @@ export interface StudyPlanTask {
   durationMinutes: number;
   completed: boolean;
   completedAt?: string;
+  lessonId?: string;
+  lessonTitle?: string;
 }
 
 export interface StudyPlan {

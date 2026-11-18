@@ -45,12 +45,20 @@ export default function TeacherLessonList() {
           </p>
           <h1 className="mt-1 text-3xl font-bold">Bài học của tôi</h1>
         </div>
-        <Link
-          href="/teacher/lessons/new"
-          className="rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white"
-        >
-          Soạn bài mới
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/teacher/lesson-reviews"
+            className="rounded-xl border border-violet-300 bg-white px-5 py-3 font-semibold text-violet-700"
+          >
+            Bài chờ AI review
+          </Link>
+          <Link
+            href="/teacher/lessons/new"
+            className="rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white"
+          >
+            Soạn bài mới
+          </Link>
+        </div>
       </header>
 
       {error && (

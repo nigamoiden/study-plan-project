@@ -64,6 +64,20 @@ export default function PracticeSession({ practiceId }: { practiceId: string }) 
   };
 
   const handleSubmit = async () => {
+    const unansweredCount = practice.questions.filter(
+      (question) => {
+        const answer = answers[question.id];
+        return answer === undefined ||
+          answer === null ||
+          (typeof answer === "string" && answer.trim().length === 0);
+      }
+    ).length;
+
+    if (unansweredCount > 0) {
+      setError(`Còn ${unansweredCount} câu chưa trả lời.`);
+      return;
+    }
+
     const payload: PracticeAnswer[] = practice.questions.map((question) => ({
       questionId: question.id,
       answer: answers[question.id] ?? "",
@@ -162,7 +176,9 @@ export default function PracticeSession({ practiceId }: { practiceId: string }) 
       <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-slate-500">Chấm tự động</p>
-          <p className="text-sm font-medium text-slate-700">Chấm theo đáp án và tiêu chí của từng câu hỏi.</p>
+          <p className="text-sm font-medium text-slate-700">
+            AI chấm câu tự luận khi đã cấu hình; các câu còn lại dùng rubric/đáp án mẫu trên máy chủ.
+          </p>
         </div>
         <button
           type="button"
