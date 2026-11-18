@@ -1,12 +1,9 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  completeGoogleRedirectLogin,
-  loginWithGoogle,
-} from "../services/auth.service";
+import { loginWithGoogle } from "../services/auth.service";
 
 interface GoogleLoginButtonProps {
   redirectTo?: string;
@@ -58,44 +55,6 @@ export default function GoogleLoginButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    completeGoogleRedirectLogin()
-      .then(async (user) => {
-        if (!active || !user) return;
-        const response = await fetch("/api/auth/me", { credentials: "same-origin" });
-        if (!response.ok) {
-          const data = await response.json().catch(() => null) as
-            | { error?: string }
-            | null;
-          throw new Error(data?.error ?? "Không thể xác nhận phiên đăng nhập Google.");
-        }
-        const data = await response.json() as {
-          role?: "student" | "teacher" | "admin";
-          onboardingCompleted?: boolean;
-        };
-        const destination =
-          data.role === "admin"
-            ? "/dashboard"
-            : data.role === "teacher"
-              ? "/teacher/dashboard"
-              : data.onboardingCompleted
-                ? redirectTo
-                : "/onboarding";
-        router.replace(destination);
-        router.refresh();
-      })
-      .catch((cause) => {
-        if (active) {
-          setError(getGoogleLoginError(cause));
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [redirectTo, router]);
-
   async function handleGoogleLogin() {
     setLoading(true);
     setError("");
@@ -124,17 +83,7 @@ export default function GoogleLoginButton({
       router.replace(destination);
       router.refresh();
     } catch (err) {
-      const code =
-        typeof err === "object" &&
-        err !== null &&
-        "code" in err &&
-        typeof err.code === "string"
-          ? err.code
-          : "";
-
-      if (code !== "auth/internal-error" && code !== "auth/popup-blocked") {
-        setError(getGoogleLoginError(err));
-      }
+      setError(getGoogleLoginError(err));
     } finally {
       setLoading(false);
     }

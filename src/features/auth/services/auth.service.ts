@@ -2,8 +2,7 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
@@ -74,14 +73,7 @@ export async function loginUser(
 }
 
 export async function loginWithGoogle(): Promise<User> {
-  await signInWithRedirect(auth, googleProvider);
-  return new Promise<User>(() => undefined);
-}
-
-export async function completeGoogleRedirectLogin(): Promise<User | null> {
-  await auth.authStateReady();
-  const credential = await getRedirectResult(auth);
-  if (!credential) return null;
+  const credential = await signInWithPopup(auth, googleProvider);
   await createSession(credential.user);
   return credential.user;
 }
