@@ -9,6 +9,42 @@ interface GoogleLoginButtonProps {
   redirectTo?: string;
 }
 
+function getGoogleLoginError(error: unknown): string {
+  const code =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code
+      : "";
+
+  switch (code) {
+    case "auth/popup-closed-by-user":
+      return "Bạn đã đóng cửa sổ đăng nhập Google.";
+    case "auth/popup-blocked":
+      return "Trình duyệt đã chặn cửa sổ đăng nhập.";
+    case "auth/unauthorized-domain":
+      return "Hãy thêm domain website vào Firebase Authentication > Settings > Authorized domains.";
+    case "auth/operation-not-allowed":
+      return "Hãy bật Google trong Firebase Authentication > Sign-in method.";
+    case "auth/invalid-api-key":
+      return "Cấu hình Firebase Web trên Vercel không hợp lệ.";
+    case "auth/network-request-failed":
+      return "Không thể kết nối Firebase. Hãy kiểm tra kết nối mạng và thử lại.";
+  }
+
+  if (
+    error instanceof Error &&
+    error.message === "Không thể tạo phiên đăng nhập"
+  ) {
+    return "Đăng nhập Google thành công nhưng máy chủ không tạo được phiên. Hãy kiểm tra POST /api/auth/session trên Vercel.";
+  }
+
+  return code
+    ? `Đăng nhập Google thất bại (${code}).`
+    : "Đăng nhập Google thất bại. Vui lòng thử lại.";
+}
+
 export default function GoogleLoginButton({
   redirectTo = "/student-dashboard",
 }: GoogleLoginButtonProps) {
@@ -25,16 +61,7 @@ export default function GoogleLoginButton({
       router.replace(redirectTo);
       router.refresh();
     } catch (err) {
-      const errorCode =
-        err instanceof Error ? err.message : "";
-
-      if (errorCode.includes("popup-closed-by-user")) {
-        setError("Bạn đã đóng cửa sổ đăng nhập Google.");
-      } else if (errorCode.includes("popup-blocked")) {
-        setError("Trình duyệt đã chặn cửa sổ đăng nhập.");
-      } else {
-        setError("Đăng nhập Google thất bại. Vui lòng thử lại.");
-      }
+      setError(getGoogleLoginError(err));
     } finally {
       setLoading(false);
     }
