@@ -90,7 +90,16 @@ export async function loginWithGoogle(): Promise<User> {
       code === "auth/popup-blocked" ||
       code === "auth/popup-closed-by-user"
     ) {
-      await signInWithRedirect(auth, googleProvider);
+      if (code === "auth/popup-closed-by-user") {
+        throw error;
+      }
+
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        return new Promise<User>(() => undefined);
+      } catch (redirectError) {
+        throw redirectError;
+      }
     }
 
     throw error;

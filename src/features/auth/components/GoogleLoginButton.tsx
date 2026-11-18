@@ -111,7 +111,17 @@ export default function GoogleLoginButton({
       router.replace(destination);
       router.refresh();
     } catch (err) {
-      setError(getGoogleLoginError(err));
+      const code =
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        typeof err.code === "string"
+          ? err.code
+          : "";
+
+      if (code !== "auth/internal-error" && code !== "auth/popup-blocked") {
+        setError(getGoogleLoginError(err));
+      }
     } finally {
       setLoading(false);
     }
