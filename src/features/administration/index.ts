@@ -1,7 +1,4 @@
 export * from "./types/admin.types";
-export * from "./services/admin.service";
-export * from "./services/content-management.service";
-export * from "./services/user-management.service";
 
 export { default as AdminDashboard } from "./components/AdminDashboard";
 export { default as UserManagement } from "./components/UserManagement";

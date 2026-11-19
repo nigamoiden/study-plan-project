@@ -1,4 +1,3 @@
-import { getDashboardMetrics } from "../services/admin.service";
 import Link from "next/link";
 import ContentManagement from "./ContentManagement";
 import GradingReview from "./GradingReview";
@@ -10,6 +9,9 @@ import UserManagement from "./UserManagement";
 export default function AdminDashboard({
   realMetrics,
   teachers = [],
+  subjects = [],
+  content = [],
+  reviews = [],
 }: {
   realMetrics?: Array<{
     label: string;
@@ -27,8 +29,32 @@ export default function AdminDashboard({
     status: "active" | "pending" | "suspended";
     approvals: number;
   }>;
+  subjects?: Array<{
+    id: string;
+    name: string;
+    code: string;
+    instructorCount: number;
+    studentCount: number;
+    status: "active" | "draft" | "archived";
+  }>;
+  content?: Array<{
+    id: string;
+    title: string;
+    type: "lesson" | "assessment";
+    owner: string;
+    status: "approved" | "in_review" | "draft";
+    lastUpdated: string;
+  }>;
+  reviews?: Array<{
+    id: string;
+    student: string;
+    subject: string;
+    score: string;
+    status: "needs_review" | "submitted" | "auto_graded";
+    due: string;
+  }>;
 }) {
-  const metrics = realMetrics ?? getDashboardMetrics();
+  const metrics = realMetrics ?? [];
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -75,10 +101,10 @@ export default function AdminDashboard({
       <div className="space-y-8">
         <UserManagement />
         <TeacherManagement teachers={teachers} />
-        <SubjectManagement />
+        <SubjectManagement subjects={subjects} />
         <QuestionManagement />
-        <ContentManagement />
-        <GradingReview />
+        <ContentManagement contentItems={content} />
+        <GradingReview tasks={reviews} />
       </div>
     </main>
   );
