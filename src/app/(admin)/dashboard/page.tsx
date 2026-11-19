@@ -13,12 +13,14 @@ export default async function AdminDashboardPage() {
   const [
     users,
     teachers,
+    teacherProfiles,
     lessons,
     assessments,
     pendingReviews,
   ] = await Promise.all([
     adminDb.collection("users").count().get(),
     adminDb.collection("users").where("role", "==", "teacher").count().get(),
+    adminDb.collection("users").where("role", "==", "teacher").limit(500).get(),
     adminDb.collection("lessons").count().get(),
     adminDb.collection("assessments").count().get(),
     adminDb.collection("lessonGradingReviews").where("status", "==", "pending_review").count().get(),
@@ -55,5 +57,23 @@ export default async function AdminDashboardPage() {
     },
   ];
 
-  return <AdminDashboard realMetrics={realMetrics} />;
+  const managedTeachers = teacherProfiles.docs.map((document) => {
+    const data = document.data();
+    return {
+      id: document.id,
+      name: String(data.displayName ?? data.name ?? data.email ?? "Giảng viên"),
+      email: String(data.email ?? ""),
+      department: String(data.department ?? ""),
+      subjects: Array.isArray(data.subjects) ? data.subjects.map(String) : [],
+      status: data.disabled ? "suspended" as const : "active" as const,
+      approvals: typeof data.approvalCount === "number" ? data.approvalCount : 0,
+    };
+  });
+
+  return (
+    <AdminDashboard
+      realMetrics={realMetrics}
+      teachers={managedTeachers}
+    />
+  );
 }

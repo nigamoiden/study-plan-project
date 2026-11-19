@@ -17,13 +17,9 @@ export default async function StudentLayout({
   const profile = await adminDb.collection("users").doc(user.uid).get();
   const profileData = profile.data();
 
-  if (profileData?.role === "teacher" || profileData?.role === "admin") {
-    redirect("/teacher/lessons");
-  }
-
   const onboardingCompleted = Boolean(profileData?.onboardingCompleted);
 
-  if (!onboardingCompleted) {
+  if (profileData?.role === "student" && !onboardingCompleted) {
     redirect("/onboarding");
   }
 

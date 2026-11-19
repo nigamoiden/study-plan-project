@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
       .collection("users")
       .doc(decodedToken.uid)
       .get();
-    if (firebaseProfile.data()?.disabled === true) {
+    const firebaseProfileData = firebaseProfile.data();
+    if (firebaseProfileData?.disabled === true) {
       return NextResponse.json(
         { error: "Tài khoản của bạn đã bị khóa." },
         { status: 403 }
@@ -109,6 +110,8 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
+      role: firebaseProfileData?.role ?? "student",
+      onboardingCompleted: Boolean(firebaseProfileData?.onboardingCompleted),
     });
 
     response.cookies.set("__session", sessionCookie, {

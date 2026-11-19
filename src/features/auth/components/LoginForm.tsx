@@ -66,18 +66,13 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      await loginUser(validation.data);
-      const response = await fetch("/api/auth/me", { credentials: "same-origin" });
-      const data = await response.json() as {
-        role?: "student" | "teacher" | "admin";
-        onboardingCompleted?: boolean;
-      };
+      const { profile } = await loginUser(validation.data);
       const destination =
-        data.role === "admin"
+        profile.role === "admin"
           ? "/dashboard"
-          : data.role === "teacher"
+          : profile.role === "teacher"
             ? "/teacher/dashboard"
-            : data.onboardingCompleted
+            : profile.onboardingCompleted
               ? "/student-dashboard"
               : "/onboarding";
       router.replace(destination);

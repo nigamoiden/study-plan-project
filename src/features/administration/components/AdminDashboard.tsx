@@ -9,6 +9,7 @@ import UserManagement from "./UserManagement";
 
 export default function AdminDashboard({
   realMetrics,
+  teachers = [],
 }: {
   realMetrics?: Array<{
     label: string;
@@ -16,6 +17,15 @@ export default function AdminDashboard({
     description: string;
     trend: string;
     positive: boolean;
+  }>;
+  teachers?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    department: string;
+    subjects: string[];
+    status: "active" | "pending" | "suspended";
+    approvals: number;
   }>;
 }) {
   const metrics = realMetrics ?? getDashboardMetrics();
@@ -64,7 +74,7 @@ export default function AdminDashboard({
 
       <div className="space-y-8">
         <UserManagement />
-        <TeacherManagement />
+        <TeacherManagement teachers={teachers} />
         <SubjectManagement />
         <QuestionManagement />
         <ContentManagement />

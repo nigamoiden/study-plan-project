@@ -18,23 +18,53 @@ import type {
   PasswordResetInput,
 } from "../types/auth.types";
 
-async function createSession(user: User): Promise<void> {
-  const idToken = await user.getIdToken();
+export type SessionProfile = {
+  role: "student" | "teacher" | "admin";
+  onboardingCompleted: boolean;
+};
 
-  const response = await fetch("/api/auth/session", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "same-origin",
-    body: JSON.stringify({ idToken }),
-  });
+const sessionPromises = new Map<string, Promise<SessionProfile>>();
 
-  if (!response.ok) {
-    const data = await response.json().catch(() => null) as
-      | { error?: string }
-      | null;
-    throw new Error(data?.error ?? "Không thể tạo phiên đăng nhập");
+export async function createSession(user: User): Promise<SessionProfile> {
+  const existing = sessionPromises.get(user.uid);
+  if (existing) {
+    return existing;
+  }
+
+  const promise = (async () => {
+    const idToken = await user.getIdToken();
+    const response = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null) as
+        | { error?: string }
+        | null;
+      throw new Error(data?.error ?? "Không thể tạo phiên đăng nhập");
+    }
+
+    const data = await response.json() as {
+      role?: "student" | "teacher" | "admin";
+      onboardingCompleted?: boolean;
+    };
+
+    return {
+      role: data.role ?? "student",
+      onboardingCompleted: Boolean(data.onboardingCompleted),
+    };
+  })();
+
+  sessionPromises.set(user.uid, promise);
+  try {
+    return await promise;
+  } finally {
+    sessionPromises.delete(user.uid);
   }
 }
 
@@ -60,22 +90,22 @@ export async function registerUser(
 
 export async function loginUser(
   input: LoginInput
-): Promise<User> {
+): Promise<{ user: User; profile: SessionProfile }> {
   const credential = await signInWithEmailAndPassword(
     auth,
     input.email.trim(),
     input.password
   );
 
-  await createSession(credential.user);
+  const profile = await createSession(credential.user);
 
-  return credential.user;
+  return { user: credential.user, profile };
 }
 
-export async function loginWithGoogle(): Promise<User> {
+export async function loginWithGoogle(): Promise<{ user: User; profile: SessionProfile }> {
   const credential = await signInWithPopup(auth, googleProvider);
-  await createSession(credential.user);
-  return credential.user;
+  const profile = await createSession(credential.user);
+  return { user: credential.user, profile };
 }
 
 export async function resetPassword(

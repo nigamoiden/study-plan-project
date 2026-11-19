@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { auth } from "@/lib/firebase/client";
+import { createSession } from "@/features/auth/services/auth.service";
 
 type AuthContextType = {
   user: User | null;
@@ -42,43 +43,21 @@ export function AuthProvider({
       async (currentUser) => {
         try {
           if (currentUser) {
-            const idToken = await currentUser.getIdToken();
-
-            const response = await fetch("/api/auth/session", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              credentials: "same-origin",
-              body: JSON.stringify({ idToken }),
-            });
-
-            if (!response.ok) {
-              throw new Error("Không thể khôi phục phiên đăng nhập");
-            }
+            const profile = await createSession(currentUser);
 
             if (
               window.location.pathname === "/login" ||
               window.location.pathname === "/register"
             ) {
-              const profileResponse = await fetch("/api/auth/me", {
-                credentials: "same-origin",
-              });
-              if (profileResponse.ok) {
-                const profile = await profileResponse.json() as {
-                  role?: "student" | "teacher" | "admin";
-                  onboardingCompleted?: boolean;
-                };
-                const destination =
-                  profile.role === "admin"
-                    ? "/dashboard"
-                    : profile.role === "teacher"
-                      ? "/teacher/dashboard"
-                      : profile.onboardingCompleted
-                        ? "/student-dashboard"
-                        : "/onboarding";
-                router.replace(destination);
-              }
+              const destination =
+                profile.role === "admin"
+                  ? "/dashboard"
+                  : profile.role === "teacher"
+                    ? "/teacher/dashboard"
+                    : profile.onboardingCompleted
+                      ? "/student-dashboard"
+                      : "/onboarding";
+              router.replace(destination);
             }
           }
 

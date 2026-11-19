@@ -131,14 +131,6 @@ function buildPlan(profile: OnboardingProfile, now: Date): StudyPlan {
     )
   );
   const tasks: StudyPlanTask[] = [];
-  const minutesForLearning = Math.max(
-    5,
-    Math.floor(profile.studyFrequency.studyMinutesPerDay / 2)
-  );
-  const minutesForPractice = Math.max(
-    5,
-    profile.studyFrequency.studyMinutesPerDay - minutesForLearning
-  );
   let studySession = 0;
 
   for (let day = 0; day < 28; day += 1) {
@@ -150,35 +142,56 @@ function buildPlan(profile: OnboardingProfile, now: Date): StudyPlan {
       continue;
     }
 
-    const subject = prioritizedSubjects[studySession % prioritizedSubjects.length];
-    const label = subjectLabels[subject];
     const week = Math.floor(day / 7) + 1;
     const stage = stages[week - 1];
     const dateString = dateKey(date);
 
-    tasks.push(
-      {
-        id: `d${day + 1}-${subject}-learn`,
-        date: dateString,
-        subject,
-        kind: "learn",
-        title: `Học trọng tâm ${label}`,
-        description: `${stage.title}: ôn một khái niệm chính của ${label}, ghi lại ví dụ và điều còn chưa rõ.`,
-        durationMinutes: minutesForLearning,
-        completed: false,
-      },
-      {
-        id: `d${day + 1}-${subject}-practice`,
-        date: dateString,
-        subject,
-        kind: "practice",
-        title: `Luyện tập ${label}`,
-        description: `Làm bài tập ${label} sau khi ôn lý thuyết; tự kiểm tra lỗi và ghi chú câu cần xem lại.`,
-        durationMinutes: minutesForPractice,
-        completed: false,
-      }
+    const diagnosticScore = profile.diagnosticTest?.status === "graded"
+      ? profile.diagnosticTest.score
+      : 100;
+    const needsMoreSessions =
+      diagnosticScore < 40
+        ? 3
+        : diagnosticScore < 70
+          ? 2
+          : 1;
+    const sessionsPerDay = Math.max(
+      1,
+      Math.min(
+        4,
+        needsMoreSessions,
+        Math.max(1, Math.floor(profile.studyFrequency.studyMinutesPerDay / 30))
+      )
     );
-    studySession += 1;
+    const taskMinutes = Math.max(
+      5,
+      Math.floor(profile.studyFrequency.studyMinutesPerDay / sessionsPerDay)
+    );
+
+    for (let session = 0; session < sessionsPerDay; session += 1) {
+      const sessionSubject =
+        prioritizedSubjects[
+          (studySession + session) % prioritizedSubjects.length
+        ];
+      const sessionLabel = subjectLabels[sessionSubject];
+      const kind = session % 2 === 0 ? "learn" : "practice";
+
+      tasks.push({
+        id: `d${day + 1}-${sessionSubject}-${kind}-${session + 1}`,
+        date: dateString,
+        subject: sessionSubject,
+        kind,
+        title: kind === "learn"
+          ? `Học trọng tâm ${sessionLabel}`
+          : `Luyện tập ${sessionLabel}`,
+        description: kind === "learn"
+          ? `${stage.title}: ôn một khái niệm chính của ${sessionLabel} dựa trên kết quả khảo sát, ghi lại ví dụ và điểm còn yếu.`
+          : `Làm bài ${sessionLabel} sau khi ôn lý thuyết; ưu tiên dạng bài gần kết quả khảo sát còn thấp.`,
+        durationMinutes: taskMinutes,
+        completed: false,
+      });
+    }
+    studySession += sessionsPerDay;
   }
 
   const end = new Date(start);

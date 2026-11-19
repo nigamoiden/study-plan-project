@@ -1,7 +1,18 @@
-import { getTeacherManagementData } from "../services/admin.service";
+type Teacher = {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  subjects: string[];
+  status: "active" | "pending" | "suspended";
+  approvals: number;
+};
 
-export default function TeacherManagement() {
-  const teachers = getTeacherManagementData();
+export default function TeacherManagement({
+  teachers,
+}: {
+  teachers: Teacher[];
+}) {
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -10,12 +21,14 @@ export default function TeacherManagement() {
           <p className="text-sm font-medium text-violet-600">Giảng viên</p>
           <h2 className="mt-1 text-xl font-bold text-slate-900">Danh sách giảng viên</h2>
         </div>
-        <button className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-violet-200 hover:text-violet-700">
-          Phê duyệt mới
-        </button>
       </div>
 
       <div className="space-y-4">
+        {teachers.length === 0 && (
+          <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+            Chưa có tài khoản giảng viên trong cơ sở dữ liệu.
+          </p>
+        )}
         {teachers.map((teacher) => (
           <div key={teacher.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 md:flex-row md:items-center md:justify-between">
             <div>

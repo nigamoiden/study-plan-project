@@ -37,8 +37,10 @@ function todayInVietnam(): string {
 
 export default function StudyPlanDashboard({
   initialPlan,
+  dashboardRole = "student",
 }: {
   initialPlan: StudyPlan;
+  dashboardRole?: "student" | "teacher" | "admin";
 }) {
   const [plan, setPlan] = useState(initialPlan);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
@@ -97,6 +99,21 @@ export default function StudyPlanDashboard({
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm font-medium">
+          {dashboardRole === "admin" && (
+            <>
+              <Link href="/dashboard" className="rounded-full bg-slate-900 px-4 py-2 text-white hover:bg-slate-800">
+                Mở Admin Dashboard
+              </Link>
+              <Link href="/teacher/dashboard" className="rounded-full border border-slate-300 bg-white px-4 py-2 text-slate-700">
+                Mở Teacher Dashboard
+              </Link>
+            </>
+          )}
+          {dashboardRole === "teacher" && (
+            <Link href="/teacher/dashboard" className="rounded-full bg-slate-900 px-4 py-2 text-white hover:bg-slate-800">
+              Mở Teacher Dashboard
+            </Link>
+          )}
           <Link
             href="/lessons"
             className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:border-violet-200 hover:text-violet-700"

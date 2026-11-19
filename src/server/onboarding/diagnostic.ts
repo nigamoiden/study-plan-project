@@ -5,49 +5,37 @@ import type {
   DiagnosticQuestion,
   DiagnosticResult,
 } from "@/features/onboarding/types/onboarding.types";
+import { adminDb } from "@/lib/firebase/admin";
+import type { SubjectName } from "@/features/onboarding/types/onboarding.types";
 
-const diagnosticQuestions = [
-  {
-    id: "math-001",
-    subject: "math",
-    question: "Đạo hàm của hàm số f(x) = x² là gì?",
-    options: ["x", "2x", "x²", "2"],
-    correctAnswer: 1,
-  },
-  {
-    id: "math-002",
-    subject: "math",
-    question: "Giá trị của lim (x² - 1)/(x - 1) khi x tiến đến 1 là:",
-    options: ["0", "1", "2", "Không tồn tại"],
-    correctAnswer: 2,
-  },
-  {
-    id: "math-003",
-    subject: "math",
-    question: "Nguyên hàm của 2x là:",
-    options: ["x² + C", "2x² + C", "x + C", "2 + C"],
-    correctAnswer: 0,
-  },
-  {
-    id: "math-004",
-    subject: "math",
-    question: "Nghiệm của phương trình x² - 5x + 6 = 0 là:",
-    options: [
-      "x = 1 và x = 6",
-      "x = 2 và x = 3",
-      "x = -2 và x = -3",
-      "x = 0 và x = 5",
-    ],
-    correctAnswer: 1,
-  },
-  {
-    id: "math-005",
-    subject: "math",
-    question: "Đạo hàm của sin(x) là:",
-    options: ["-sin(x)", "cos(x)", "-cos(x)", "tan(x)"],
-    correctAnswer: 1,
-  },
-] as const;
+type StoredDiagnosticQuestion = {
+  id: string;
+  subject: SubjectName;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  active: boolean;
+};
+
+async function getStoredDiagnosticQuestions(): Promise<StoredDiagnosticQuestion[]> {
+  const snapshot = await adminDb
+    .collection("onboardingQuestions")
+    .where("active", "==", true)
+    .limit(200)
+    .get();
+
+  return snapshot.docs.map((document) => {
+    const data = document.data();
+    return {
+      id: document.id,
+      subject: data.subject,
+      question: data.question,
+      options: Array.isArray(data.options) ? data.options.map(String) : [],
+      correctAnswer: Number(data.correctAnswer),
+      active: data.active !== false,
+    };
+  });
+}
 
 export class InvalidDiagnosticAnswersError extends Error {
   constructor() {
@@ -56,7 +44,8 @@ export class InvalidDiagnosticAnswersError extends Error {
   }
 }
 
-export function getDiagnosticQuestions(): DiagnosticQuestion[] {
+export async function getDiagnosticQuestions(): Promise<DiagnosticQuestion[]> {
+  const diagnosticQuestions = await getStoredDiagnosticQuestions();
   return diagnosticQuestions.map(({ id, subject, question, options }) => ({
     id,
     subject,
@@ -65,9 +54,10 @@ export function getDiagnosticQuestions(): DiagnosticQuestion[] {
   }));
 }
 
-export function gradeDiagnosticAnswers(
+export async function gradeDiagnosticAnswers(
   answers: DiagnosticAnswer[]
-): DiagnosticResult {
+): Promise<DiagnosticResult> {
+  const diagnosticQuestions = await getStoredDiagnosticQuestions();
   if (answers.length === 0) {
     return {
       answers: [],

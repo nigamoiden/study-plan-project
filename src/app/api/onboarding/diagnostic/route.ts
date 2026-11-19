@@ -10,5 +10,5 @@ export async function GET() {
     return NextResponse.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
   }
 
-  return NextResponse.json({ questions: getDiagnosticQuestions() });
+  return NextResponse.json({ questions: await getDiagnosticQuestions() });
 }

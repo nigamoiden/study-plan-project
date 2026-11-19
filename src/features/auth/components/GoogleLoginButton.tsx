@@ -60,24 +60,13 @@ export default function GoogleLoginButton({
     setError("");
 
     try {
-      await loginWithGoogle();
-      const response = await fetch("/api/auth/me", { credentials: "same-origin" });
-      if (!response.ok) {
-        const data = await response.json().catch(() => null) as
-          | { error?: string }
-          | null;
-        throw new Error(data?.error ?? "Không thể xác nhận phiên đăng nhập Google.");
-      }
-      const data = await response.json() as {
-        role?: "student" | "teacher" | "admin";
-        onboardingCompleted?: boolean;
-      };
+      const { profile } = await loginWithGoogle();
       const destination =
-        data.role === "admin"
+        profile.role === "admin"
           ? "/dashboard"
-          : data.role === "teacher"
+          : profile.role === "teacher"
             ? "/teacher/dashboard"
-            : data.onboardingCompleted
+            : profile.onboardingCompleted
               ? redirectTo
               : "/onboarding";
       router.replace(destination);

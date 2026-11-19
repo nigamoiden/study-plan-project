@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     let diagnosticResult: DiagnosticResult;
 
     try {
-      diagnosticResult = gradeDiagnosticAnswers(data.diagnosticTest.answers);
+      diagnosticResult = await gradeDiagnosticAnswers(data.diagnosticTest.answers);
     } catch (error) {
       if (error instanceof InvalidDiagnosticAnswersError) {
         return NextResponse.json(
