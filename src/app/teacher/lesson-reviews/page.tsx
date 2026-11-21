@@ -22,6 +22,19 @@ type Review = {
   details: ReviewDetail[];
 };
 
+async function readJson<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  if (!text.trim()) {
+    throw new Error("Máy chủ chưa trả về dữ liệu. Vui lòng thử lại.");
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("Máy chủ trả về dữ liệu không hợp lệ. Vui lòng thử lại.");
+  }
+}
+
 export default function TeacherLessonReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +46,7 @@ export default function TeacherLessonReviewsPage() {
     setError("");
     try {
       const response = await fetch("/api/teacher/lesson-reviews", { credentials: "same-origin" });
-      const data = await response.json() as { reviews?: Review[]; error?: string };
+      const data = await readJson<{ reviews?: Review[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Không thể tải danh sách chấm bài.");
       setReviews(data.reviews ?? []);
     } catch (cause) {
@@ -47,7 +60,7 @@ export default function TeacherLessonReviewsPage() {
     let active = true;
     fetch("/api/teacher/lesson-reviews", { credentials: "same-origin" })
       .then(async (response) => {
-        const data = await response.json() as { reviews?: Review[]; error?: string };
+        const data = await readJson<{ reviews?: Review[]; error?: string }>(response);
         if (!response.ok) throw new Error(data.error ?? "Không thể tải danh sách chấm bài.");
         if (active) setReviews(data.reviews ?? []);
       })
@@ -75,7 +88,7 @@ export default function TeacherLessonReviewsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ exerciseId, score, feedback }),
       });
-      const data = await response.json() as { error?: string };
+      const data = await readJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Không thể gửi điểm chỉnh sửa.");
       await load();
     } catch (cause) {

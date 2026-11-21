@@ -291,16 +291,17 @@ export async function ensureStudyPlan(uid: string): Promise<StudyPlan> {
   return plan;
 }
 
-export async function completeStudyTask(
+export async function setStudyTaskCompletion(
   uid: string,
-  taskId: string
+  taskId: string,
+  completed: boolean
 ): Promise<StudyPlan | null> {
   const planRef = adminDb
     .collection("users")
     .doc(uid)
     .collection("studyPlans")
     .doc("current");
-  const completedAt = new Date().toISOString();
+  const completedAt = completed ? new Date().toISOString() : null;
 
   return adminDb.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(planRef);
@@ -316,12 +317,20 @@ export async function completeStudyTask(
       return null;
     }
 
-    if (plan.tasks[taskIndex].completed) {
+    if (plan.tasks[taskIndex].completed === completed) {
       return plan;
     }
 
     const tasks = plan.tasks.map((task, index) =>
-      index === taskIndex ? { ...task, completed: true, completedAt } : task
+      index !== taskIndex
+        ? task
+        : completed
+          ? { ...task, completed: true, completedAt: completedAt! }
+          : (() => {
+              const updatedTask = { ...task, completed: false };
+              delete updatedTask.completedAt;
+              return updatedTask;
+            })()
     );
     const updatedPlan = { ...plan, tasks };
 

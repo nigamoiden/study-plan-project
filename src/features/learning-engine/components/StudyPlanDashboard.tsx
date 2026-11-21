@@ -54,14 +54,17 @@ export default function StudyPlanDashboard({
   const today = todayInVietnam();
   const visibleTasks = plan.tasks.filter((task) => task.date >= today).slice(0, 14);
 
-  async function completeTask(taskId: string) {
+  async function updateTaskCompletion(taskId: string, completed: boolean) {
     setUpdatingTaskId(taskId);
     setError("");
 
     try {
       const response = await fetch(
         `/api/study-plan/tasks/${encodeURIComponent(taskId)}/complete`,
-        { method: "POST", credentials: "same-origin" }
+        {
+          method: completed ? "POST" : "DELETE",
+          credentials: "same-origin",
+        }
       );
       const data = (await response.json()) as {
         plan?: StudyPlan;
@@ -279,18 +282,20 @@ export default function StudyPlanDashboard({
                             )}
                             <button
                               type="button"
-                              disabled={task.completed || updatingTaskId !== null}
-                              onClick={() => void completeTask(task.id)}
+                              disabled={updatingTaskId !== null}
+                              onClick={() =>
+                                void updateTaskCompletion(task.id, !task.completed)
+                              }
                               className={`rounded-xl px-3 py-2 text-sm font-semibold ${
                                 task.completed
-                                  ? "bg-emerald-50 text-emerald-700"
+                                  ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                                   : "border border-slate-300 bg-white text-slate-700 hover:border-violet-300 disabled:opacity-50"
                               }`}
                             >
-                              {task.completed
-                                ? "Hoàn thành"
-                                : updatingTaskId === task.id
-                                  ? "Đang lưu..."
+                              {updatingTaskId === task.id
+                                ? "Đang lưu..."
+                                : task.completed
+                                  ? "Bỏ đánh dấu hoàn thành"
                                   : "Đánh dấu xong"}
                             </button>
                           </div>

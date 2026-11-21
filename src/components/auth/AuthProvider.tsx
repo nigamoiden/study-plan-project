@@ -15,15 +15,20 @@ import {
 import { useRouter } from "next/navigation";
 
 import { auth } from "@/lib/firebase/client";
-import { createSession } from "@/features/auth/services/auth.service";
+import {
+  createSession,
+  type SessionProfile,
+} from "@/features/auth/services/auth.service";
 
 type AuthContextType = {
   user: User | null;
+  profile: SessionProfile | null;
   loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  profile: null,
   loading: true,
 });
 
@@ -33,7 +38,7 @@ export function AuthProvider({
   children: ReactNode;
 }) {
   const [user, setUser] = useState<User | null>(null);
-
+  const [profile, setProfile] = useState<SessionProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -43,28 +48,32 @@ export function AuthProvider({
       async (currentUser) => {
         try {
           if (currentUser) {
-            const profile = await createSession(currentUser);
+            const currentProfile = await createSession(currentUser);
+            setProfile(currentProfile);
 
             if (
               window.location.pathname === "/login" ||
               window.location.pathname === "/register"
             ) {
               const destination =
-                profile.role === "admin"
+                currentProfile.role === "admin"
                   ? "/dashboard"
-                  : profile.role === "teacher"
+                  : currentProfile.role === "teacher"
                     ? "/teacher/dashboard"
-                    : profile.onboardingCompleted
+                    : currentProfile.onboardingCompleted
                       ? "/student-dashboard"
                       : "/onboarding";
               router.replace(destination);
             }
+          } else {
+            setProfile(null);
           }
 
           setUser(currentUser);
         } catch (error) {
           console.error("Auth state error:", error);
           setUser(null);
+          setProfile(null);
         } finally {
           setLoading(false);
         }
@@ -75,7 +84,7 @@ export function AuthProvider({
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading }}>
       {children}
     </AuthContext.Provider>
   );

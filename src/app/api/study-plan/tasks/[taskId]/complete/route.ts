@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { completeStudyTask } from "@/server/learning/study-plan";
+import { setStudyTaskCompletion } from "@/server/learning/study-plan";
 import { requireUser } from "@/server/auth/require-user";
 
 type Context = {
   params: Promise<{ taskId: string }>;
 };
 
-export async function POST(request: Request, context: Context) {
+async function updateCompletion(
+  request: Request,
+  context: Context,
+  completed: boolean
+) {
   const origin = request.headers.get("origin");
 
   if (!origin || origin !== new URL(request.url).origin) {
@@ -27,7 +31,7 @@ export async function POST(request: Request, context: Context) {
   }
 
   try {
-    const plan = await completeStudyTask(user.uid, taskId);
+    const plan = await setStudyTaskCompletion(user.uid, taskId, completed);
 
     if (!plan) {
       return NextResponse.json(
@@ -38,10 +42,18 @@ export async function POST(request: Request, context: Context) {
 
     return NextResponse.json({ plan });
   } catch (error) {
-    console.error("Complete study task error:", error);
+    console.error("Update study task completion error:", error);
     return NextResponse.json(
       { error: "Không thể cập nhật tiến độ học." },
       { status: 500 }
     );
   }
+}
+
+export async function POST(request: Request, context: Context) {
+  return updateCompletion(request, context, true);
+}
+
+export async function DELETE(request: Request, context: Context) {
+  return updateCompletion(request, context, false);
 }

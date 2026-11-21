@@ -9,11 +9,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:security": "node --experimental-strip-types --test src/server/inbox/validation.test.mjs"
   },
   "dependencies": {
-    "firebase": "^13.3.0",
-    "firebase-admin": "^13.10.0",
+    "firebase": "^13.4.0",
+    "firebase-admin": "^14.5.1",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -28,5 +29,8 @@
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.7"
   }
 }

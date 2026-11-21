@@ -38,11 +38,20 @@ function serializeLesson(
         const options = Array.isArray(exercise.options)
           ? exercise.options.map(String)
           : undefined;
+        const statements = Array.isArray(exercise.statements)
+          ? exercise.statements.map((statement: Record<string, unknown>) => ({
+              content: String(statement.content ?? ""),
+              ...(includeAnswers && typeof statement.correctAnswer === "boolean"
+                ? { correctAnswer: statement.correctAnswer }
+                : {}),
+            }))
+          : undefined;
         const publicExercise = {
           id,
           type,
           prompt,
           options,
+          statements,
         };
         return includeAnswers
           ? {

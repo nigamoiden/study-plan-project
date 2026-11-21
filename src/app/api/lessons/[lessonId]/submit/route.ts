@@ -82,6 +82,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
     options?: string[];
     correctAnswer: string;
     explanation: string;
+    statements?: Array<{
+      content: string;
+      correctAnswer?: boolean;
+    }>;
   }>;
   const answerMap = new Map(parsed.data.answers.map((item) => [item.exerciseId, item.answer]));
   if (
@@ -113,8 +117,48 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
       score = answer === String(correctIndex) ? 100 : 0;
       feedback = score === 100 ? "Chính xác." : `Đáp án đúng: ${exercise.options?.[correctIndex] ?? exercise.correctAnswer}`;
     } else if (exercise.type === "true_false") {
-      score = answer === exercise.correctAnswer ? 100 : 0;
-      feedback = score === 100 ? "Chính xác." : `Đáp án đúng: ${exercise.correctAnswer === "true" ? "Đúng" : "Sai"}`;
+      if (exercise.statements?.length === 4) {
+        let submittedAnswers: unknown;
+        try {
+          submittedAnswers = JSON.parse(answer) as unknown;
+        } catch {
+          return NextResponse.json(
+            { error: `Câu trả lời cho câu ${exercise.id} không hợp lệ.` },
+            { status: 400 }
+          );
+        }
+
+        if (
+          !Array.isArray(submittedAnswers) ||
+          submittedAnswers.length !== 4 ||
+          submittedAnswers.some((item) => typeof item !== "boolean")
+        ) {
+          return NextResponse.json(
+            { error: `Câu trả lời cho câu ${exercise.id} cần đủ 4 ý đúng/sai.` },
+            { status: 400 }
+          );
+        }
+
+        const labels = ["a", "b", "c", "d"];
+        const correctCount = exercise.statements.filter(
+          (statement, index) =>
+            submittedAnswers[index] === statement.correctAnswer
+        ).length;
+        score = Math.round((correctCount / exercise.statements.length) * 100);
+        feedback = exercise.statements
+          .map((statement, index) => {
+            const isCorrect =
+              submittedAnswers[index] === statement.correctAnswer;
+            const correctAnswer = statement.correctAnswer ? "Đúng" : "Sai";
+            return `Ý ${labels[index]}: ${
+              isCorrect ? "chính xác" : `chưa chính xác (đáp án: ${correctAnswer})`
+            }.`;
+          })
+          .join(" ");
+      } else {
+        score = answer === exercise.correctAnswer ? 100 : 0;
+        feedback = score === 100 ? "Chính xác." : `Đáp án đúng: ${exercise.correctAnswer === "true" ? "Đúng" : "Sai"}`;
+      }
     } else if (exercise.type === "short_answer") {
       const normalizedAnswer = answer.normalize("NFC").trim().toLocaleLowerCase("vi-VN");
       const normalizedCorrect = exercise.correctAnswer.normalize("NFC").trim().toLocaleLowerCase("vi-VN");
@@ -144,7 +188,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
       score,
       feedback,
       explanation: exercise.explanation,
-      correctAnswer: exercise.type === "essay" ? null : exercise.correctAnswer,
+      correctAnswer:
+        exercise.type === "essay"
+          ? null
+          : exercise.type === "true_false" && exercise.statements?.length === 4
+            ? exercise.statements
+                .map(
+                  (statement, index) =>
+                    `${["a", "b", "c", "d"][index]}. ${
+                      statement.correctAnswer ? "Đúng" : "Sai"
+                    }`
+                )
+                .join(" · ")
+            : exercise.correctAnswer,
     });
   }
 
@@ -185,6 +241,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
     read: false,
   });
 
+  const studentDetails = details.map((detail) => ({
+    exerciseId: detail.exerciseId,
+    score: detail.score,
+    feedback:
+      detail.type === "essay"
+        ? "Bài tự luận đang chờ giáo viên xác nhận."
+        : detail.score === 100
+          ? "Chính xác."
+          : "Chưa chính xác. Đáp án sẽ được công bố sau.",
+  }));
+
   if (hasEssay) {
     await adminDb.collection("lessonGradingReviews").add({
       submissionId: submissionRef.id,
@@ -208,7 +275,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
     result: {
       score,
       status: hasEssay ? "pending_teacher_review" : "graded",
-      details,
+      details: studentDetails,
     },
   });
 }

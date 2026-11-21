@@ -63,6 +63,10 @@ export interface LessonExercise {
   type: ExerciseType;
   prompt: string;
   options?: string[];
+  statements?: Array<{
+    content: string;
+    correctAnswer?: boolean;
+  }>;
   correctAnswer?: string;
   explanation?: string;
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { readInboxResponse } from "@/features/notification/services/notification.service";
+
 type InboxMessage = {
   id: string;
   title: string;
@@ -16,12 +18,14 @@ export default function InboxPage() {
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/inbox", { credentials: "same-origin" })
       .then(async (response) => {
-        const data = await response.json() as { messages?: InboxMessage[]; error?: string };
-        if (!response.ok) throw new Error(data.error ?? "Không thể tải hộp thư.");
+        const data = await readInboxResponse<{
+          messages?: InboxMessage[];
+        }>(response, "Không thể tải hộp thư.");
         setMessages(data.messages ?? []);
       })
       .catch((cause) => setError(cause instanceof Error ? cause.message : "Không thể tải hộp thư."))
@@ -61,22 +65,39 @@ export default function InboxPage() {
             {!message.read && (
               <button
                 type="button"
+                disabled={updatingMessageId === message.id}
                 onClick={async () => {
-                  await fetch("/api/inbox", {
-                    method: "PATCH",
-                    credentials: "same-origin",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messageId: message.id, read: true }),
-                  });
-                  setMessages((current) =>
-                    current.map((item) =>
-                      item.id === message.id ? { ...item, read: true } : item
-                    )
-                  );
+                  setUpdatingMessageId(message.id);
+                  setError("");
+                  try {
+                    const response = await fetch("/api/inbox", {
+                      method: "PATCH",
+                      credentials: "same-origin",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ messageId: message.id, read: true }),
+                    });
+                    await readInboxResponse<{ success: boolean }>(
+                      response,
+                      "Không thể cập nhật thông báo."
+                    );
+                    setMessages((current) =>
+                      current.map((item) =>
+                        item.id === message.id ? { ...item, read: true } : item
+                      )
+                    );
+                  } catch (cause) {
+                    setError(
+                      cause instanceof Error
+                        ? cause.message
+                        : "Không thể cập nhật thông báo."
+                    );
+                  } finally {
+                    setUpdatingMessageId(null);
+                  }
                 }}
-                className="mt-3 rounded-lg border border-violet-200 px-3 py-1.5 text-sm font-semibold text-violet-700"
+                className="mt-3 rounded-lg border border-violet-200 px-3 py-1.5 text-sm font-semibold text-violet-700 disabled:opacity-50"
               >
-                Đánh dấu đã đọc
+                {updatingMessageId === message.id ? "Đang cập nhật..." : "Đánh dấu đã đọc"}
               </button>
             )}
           </article>

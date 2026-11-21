@@ -11,12 +11,35 @@ import type {
 import { getLesson } from "../services/lesson.service";
 import { SketchDrawing } from "./SketchEditor";
 
+const statementLabels = ["a", "b", "c", "d"];
+
+function getTrueFalseAnswers(answer: string | undefined): Array<boolean | null> {
+  if (!answer) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(answer);
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 4 &&
+      parsed.every((value) => typeof value === "boolean" || value === null)
+    ) {
+      return parsed;
+    }
+  } catch {
+    return [];
+  }
+
+  return [];
+}
+
 function ExerciseList({
   exercises,
   answerVisible,
+  previewOnly,
 }: {
   exercises: LessonExercise[];
   answerVisible: boolean;
+  previewOnly: boolean;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -31,6 +54,13 @@ function ExerciseList({
   async function submitExercises() {
     const missing = exercises.filter((exercise) => {
       const answer = answers[exercise.id];
+      if (exercise.type === "true_false" && exercise.statements?.length === 4) {
+        const statementAnswers = getTrueFalseAnswers(answer);
+        return (
+          statementAnswers.length !== 4 ||
+          statementAnswers.some((item) => item === null)
+        );
+      }
       return answer === undefined || answer.trim().length === 0;
     });
     if (missing.length > 0) {
@@ -52,10 +82,21 @@ function ExerciseList({
           })),
         }),
       });
-      const data = await response.json() as {
+      const responseText = await response.text();
+      let data: {
         result?: typeof submitResult;
         error?: string;
       };
+      try {
+        data = JSON.parse(responseText) as typeof data;
+      } catch {
+        throw new Error(
+          responseText.trim()
+            ? "Máy chủ trả về dữ liệu không hợp lệ khi nộp bài."
+            : "Máy chủ chưa trả về kết quả. Vui lòng thử lại."
+        );
+      }
+
       if (!response.ok || !data.result) {
         throw new Error(data.error ?? "Không thể nộp bài tập.");
       }
@@ -69,7 +110,20 @@ function ExerciseList({
 
   function isCorrect(exercise: LessonExercise) {
     const answer = answers[exercise.id];
-    if (answer === undefined || !exercise.correctAnswer) return false;
+    if (answer === undefined) return false;
+
+    if (exercise.type === "true_false" && exercise.statements?.length === 4) {
+      const statementAnswers = getTrueFalseAnswers(answer);
+      return (
+        statementAnswers.length === 4 &&
+        exercise.statements.every(
+          (statement, index) =>
+            statementAnswers[index] === statement.correctAnswer
+        )
+      );
+    }
+
+    if (!exercise.correctAnswer) return false;
 
     if (exercise.type === "short_answer") {
       return answer.trim().toLocaleLowerCase() ===
@@ -115,6 +169,7 @@ function ExerciseList({
                   <input
                     type="radio"
                     name={exercise.id}
+                    disabled={previewOnly}
                     checked={answers[exercise.id] === String(optionIndex)}
                     onChange={() =>
                       setAnswers((current) => ({
@@ -126,52 +181,86 @@ function ExerciseList({
                   <span>{option}</span>
                 </label>
               ))}
-
-              {submitError && (
-                <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                  {submitError}
-                </p>
-              )}
-
-              <div className="flex flex-col gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-bold text-slate-900">Nộp bài luyện tập</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Câu tự luận sẽ được AI chấm sơ bộ rồi gửi cho giáo viên xác nhận.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void submitExercises()}
-                  disabled={submitting}
-                  className="rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
-                >
-                  {submitting ? "Đang chấm..." : "Nộp bài"}
-                </button>
-              </div>
-
-              {submitResult && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                  <p className="text-sm font-semibold text-emerald-700">
-                    {submitResult.status === "pending_teacher_review"
-                      ? "Đang chờ giáo viên xác nhận"
-                      : "Đã chấm xong"}
-                  </p>
-                  <p className="mt-1 text-3xl font-bold text-slate-900">{submitResult.score}%</p>
-                  <div className="mt-4 space-y-2">
-                    {submitResult.details.map((detail, index) => (
-                      <div key={detail.exerciseId} className="rounded-lg bg-white p-3 text-sm">
-                        <p className="font-semibold">Câu {index + 1}: {detail.score}%</p>
-                        <p className="mt-1 text-slate-600">{detail.feedback}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {exercise.type === "true_false" && (
+          {exercise.type === "true_false" &&
+            exercise.statements?.length === 4 && (
+            <div className="mt-4 space-y-3">
+              {exercise.statements.map((statement, statementIndex) => {
+                const statementAnswers = getTrueFalseAnswers(
+                  answers[exercise.id]
+                );
+                const selectedValue = statementAnswers[statementIndex] ?? null;
+
+                return (
+                  <div
+                    key={`${exercise.id}-${statementIndex}`}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center"
+                  >
+                    <p className="flex-1 text-sm">
+                      <span className="mr-2 font-semibold">
+                        {statementLabels[statementIndex]}.
+                      </span>
+                      {statement.content}
+                    </p>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={selectedValue === true}
+                      aria-label={`Ý ${statementLabels[statementIndex]}: ${
+                        selectedValue === null
+                          ? "chưa chọn"
+                          : selectedValue
+                            ? "Đúng"
+                            : "Sai"
+                      }`}
+                      disabled={previewOnly}
+                      onClick={() => {
+                        const nextAnswers =
+                          statementAnswers.length === 4
+                            ? [...statementAnswers]
+                            : [null, null, null, null];
+                        nextAnswers[statementIndex] =
+                          selectedValue === null ? true : !selectedValue;
+                        setAnswers((current) => ({
+                          ...current,
+                          [exercise.id]: JSON.stringify(nextAnswers),
+                        }));
+                      }}
+                      className="flex shrink-0 items-center gap-2 self-end rounded-full p-1 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+                    >
+                      <span>
+                        {selectedValue === null
+                          ? "Chưa chọn"
+                          : selectedValue
+                            ? "Đúng"
+                            : "Sai"}
+                      </span>
+                      <span
+                        className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                          selectedValue === true
+                            ? "bg-violet-600"
+                            : selectedValue === false
+                              ? "bg-slate-500"
+                              : "bg-slate-300"
+                        }`}
+                      >
+                        <span
+                          className={`h-4 w-4 rounded-full bg-white transition-transform ${
+                            selectedValue === true ? "translate-x-5" : ""
+                          }`}
+                        />
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {exercise.type === "true_false" &&
+            (!exercise.statements || exercise.statements.length !== 4) && (
             <div className="mt-3 flex gap-2">
               {[
                 { value: "true", label: "Đúng" },
@@ -180,6 +269,7 @@ function ExerciseList({
                 <button
                   key={option.value}
                   type="button"
+                  disabled={previewOnly}
                   aria-pressed={answers[exercise.id] === option.value}
                   onClick={() =>
                     setAnswers((current) => ({
@@ -199,7 +289,8 @@ function ExerciseList({
             </div>
           )}
 
-          {(exercise.type === "short_answer" ||
+          {!previewOnly &&
+            (exercise.type === "short_answer" ||
             exercise.type === "essay") && (
             <textarea
               className="mt-3 w-full rounded-lg border border-slate-300 p-3"
@@ -256,9 +347,18 @@ function ExerciseList({
                 {exercise.type === "multiple_choice"
                   ? exercise.options?.[Number(exercise.correctAnswer)]
                   : exercise.type === "true_false"
-                    ? exercise.correctAnswer === "true"
-                      ? "Đúng"
-                      : "Sai"
+                    ? exercise.statements?.length === 4
+                      ? exercise.statements
+                          .map(
+                            (statement, statementIndex) =>
+                              `${statementLabels[statementIndex]}. ${
+                                statement.correctAnswer ? "Đúng" : "Sai"
+                              }`
+                          )
+                          .join(" · ")
+                      : exercise.correctAnswer === "true"
+                        ? "Đúng"
+                        : "Sai"
                     : exercise.correctAnswer}
               </p>
               <p className="mt-2 whitespace-pre-wrap">
@@ -268,11 +368,70 @@ function ExerciseList({
           )}
         </article>
       ))}
+
+      {!previewOnly && exercises.length > 0 && (
+        <>
+          {submitError && (
+            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {submitError}
+            </p>
+          )}
+
+          <div className="flex flex-col gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-bold text-slate-900">Nộp bài luyện tập</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Câu tự luận sẽ được AI chấm sơ bộ rồi gửi cho giáo viên xác nhận.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void submitExercises()}
+              disabled={submitting}
+              className="rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
+            >
+              {submitting ? "Đang chấm..." : "Nộp bài"}
+            </button>
+          </div>
+
+          {submitResult && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              <p className="text-sm font-semibold text-emerald-700">
+                {submitResult.status === "pending_teacher_review"
+                  ? "Đang chờ giáo viên xác nhận"
+                  : "Đã chấm xong"}
+              </p>
+              <p className="mt-1 text-3xl font-bold text-slate-900">
+                {submitResult.score}%
+              </p>
+              <div className="mt-4 space-y-2">
+                {submitResult.details.map((detail, index) => (
+                  <div
+                    key={detail.exerciseId}
+                    className="rounded-lg bg-white p-3 text-sm"
+                  >
+                    <p className="font-semibold">
+                      Câu {index + 1}: {detail.score}%
+                    </p>
+                    <p className="mt-1 text-slate-600">{detail.feedback}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }
 
-export default function LessonViewer({ lessonId }: { lessonId: string }) {
+export default function LessonViewer({
+  lessonId,
+  previewOnly = false,
+}: {
+  lessonId: string;
+  previewOnly?: boolean;
+}) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -391,6 +550,7 @@ export default function LessonViewer({ lessonId }: { lessonId: string }) {
       <ExerciseList
         exercises={lesson.exercises}
         answerVisible={lesson.answerVisible !== false}
+        previewOnly={previewOnly}
       />
     </main>
   );

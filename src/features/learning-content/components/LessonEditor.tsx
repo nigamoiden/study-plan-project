@@ -27,10 +27,20 @@ function createExercise(type: ExerciseType = "multiple_choice"): LessonExercise 
     ...(type === "multiple_choice"
       ? { options: ["", ""] }
       : {}),
+    ...(type === "true_false"
+      ? {
+          statements: Array.from({ length: 4 }, () => ({
+            content: "",
+            correctAnswer: true,
+          })),
+        }
+      : {}),
     correctAnswer: type === "true_false" ? "true" : "",
     explanation: "",
   };
 }
+
+const statementLabels = ["a", "b", "c", "d"];
 
 const initialDraft: LessonDraft = {
   title: "",
@@ -390,7 +400,9 @@ export default function LessonEditor() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold">Câu hỏi</label>
+              <label className="text-sm font-semibold">
+                {exercise.type === "true_false" ? "Yêu cầu chung" : "Câu hỏi"}
+              </label>
               <textarea
                 className={fieldClass}
                 rows={3}
@@ -401,6 +413,11 @@ export default function LessonEditor() {
                     prompt: event.target.value,
                   })
                 }
+                  placeholder={
+                    exercise.type === "true_false"
+                      ? "Xác định mỗi ý sau là đúng hay sai."
+                      : undefined
+                  }
                 required
               />
             </div>
@@ -482,22 +499,75 @@ export default function LessonEditor() {
             )}
 
             {exercise.type === "true_false" && (
-              <label className="block text-sm font-semibold">
-                Đáp án đúng
-                <select
-                  className={fieldClass}
-                  value={exercise.correctAnswer}
-                  onChange={(event) =>
-                    updateExercise(index, {
-                      ...exercise,
-                      correctAnswer: event.target.value,
-                    })
-                  }
-                >
-                  <option value="true">Đúng</option>
-                  <option value="false">Sai</option>
-                </select>
-              </label>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">
+                  Bốn ý và đáp án đúng/sai
+                </p>
+                {(exercise.statements ?? []).map((statement, statementIndex) => (
+                  <div
+                    key={statementLabels[statementIndex]}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center"
+                  >
+                    <label className="min-w-0 flex-1 text-sm font-semibold">
+                      <span className="mb-1 block">
+                        Ý {statementLabels[statementIndex]}
+                      </span>
+                      <textarea
+                        className={fieldClass}
+                        rows={2}
+                        value={statement.content}
+                        onChange={(event) =>
+                          updateExercise(index, {
+                            ...exercise,
+                            statements: exercise.statements?.map(
+                              (item, itemIndex) =>
+                                itemIndex === statementIndex
+                                  ? { ...item, content: event.target.value }
+                                  : item
+                            ),
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={statement.correctAnswer === true}
+                      aria-label={`Đáp án ý ${statementLabels[statementIndex]}: ${
+                        statement.correctAnswer ? "Đúng" : "Sai"
+                      }`}
+                      onClick={() =>
+                        updateExercise(index, {
+                          ...exercise,
+                          statements: exercise.statements?.map(
+                            (item, itemIndex) =>
+                              itemIndex === statementIndex
+                                ? { ...item, correctAnswer: !item.correctAnswer }
+                                : item
+                          ),
+                        })
+                      }
+                      className="flex shrink-0 items-center gap-2 self-end rounded-full p-1 text-sm font-semibold sm:self-auto"
+                    >
+                      <span>
+                        {statement.correctAnswer ? "Đúng" : "Sai"}
+                      </span>
+                      <span
+                        className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                          statement.correctAnswer ? "bg-violet-600" : "bg-slate-400"
+                        }`}
+                      >
+                        <span
+                          className={`h-4 w-4 rounded-full bg-white transition-transform ${
+                            statement.correctAnswer ? "translate-x-5" : ""
+                          }`}
+                        />
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
 
             {exercise.type === "short_answer" && (

@@ -74,6 +74,11 @@ const lessonBlockSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
+const trueFalseStatementSchema = z.object({
+  content: z.string().trim().min(1).max(1000),
+  correctAnswer: z.boolean(),
+});
+
 const exerciseSchema = z
   .object({
     id: z.string().min(1).max(100),
@@ -85,6 +90,7 @@ const exerciseSchema = z
     ]),
     prompt: z.string().trim().min(1).max(10000),
     options: z.array(z.string().trim().min(1).max(1000)).max(10).optional(),
+    statements: z.array(trueFalseStatementSchema).optional(),
     correctAnswer: z.string().trim().min(1).max(10000),
     explanation: z.string().trim().min(1).max(10000),
   })
@@ -105,13 +111,12 @@ const exerciseSchema = z
 
     if (
       exercise.type === "true_false" &&
-      exercise.correctAnswer !== "true" &&
-      exercise.correctAnswer !== "false"
+      (!exercise.statements || exercise.statements.length !== 4)
     ) {
       context.addIssue({
         code: "custom",
-        message: "Câu đúng/sai cần chọn đáp án đúng.",
-        path: ["correctAnswer"],
+        message: "Câu đúng/sai cần có đủ 4 ý a, b, c, d.",
+        path: ["statements"],
       });
     }
   });

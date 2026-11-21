@@ -63,7 +63,10 @@ export async function gradeWithAI(
 
     if (!response.ok) return null;
 
-    const payload = await response.json() as {
+    const responseText = await response.text();
+    if (!responseText.trim()) return null;
+
+    const payload = JSON.parse(responseText) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
     const content = payload.choices?.[0]?.message?.content;

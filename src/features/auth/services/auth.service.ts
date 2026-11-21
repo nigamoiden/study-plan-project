@@ -5,8 +5,11 @@ import {
   signInWithPopup,
   sendEmailVerification,
   sendPasswordResetEmail,
+  setPersistence,
   signOut,
   updateProfile,
+  browserLocalPersistence,
+  browserSessionPersistence,
   type User,
 } from "firebase/auth";
 
@@ -89,8 +92,13 @@ export async function registerUser(
 }
 
 export async function loginUser(
-  input: LoginInput
+  input: LoginInput,
+  rememberMe = true
 ): Promise<{ user: User; profile: SessionProfile }> {
+  await setPersistence(
+    auth,
+    rememberMe ? browserLocalPersistence : browserSessionPersistence
+  );
   const credential = await signInWithEmailAndPassword(
     auth,
     input.email.trim(),
@@ -103,6 +111,7 @@ export async function loginUser(
 }
 
 export async function loginWithGoogle(): Promise<{ user: User; profile: SessionProfile }> {
+  await setPersistence(auth, browserLocalPersistence);
   const credential = await signInWithPopup(auth, googleProvider);
   const profile = await createSession(credential.user);
   return { user: credential.user, profile };

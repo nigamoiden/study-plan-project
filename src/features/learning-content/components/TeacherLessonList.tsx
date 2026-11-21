@@ -82,7 +82,14 @@ export default function TeacherLessonList() {
               <p className="text-sm font-semibold text-violet-700">
                 {SUBJECT_LABELS[lesson.subject]} · {lesson.topic}
               </p>
-              <h2 className="mt-2 text-xl font-bold">{lesson.title}</h2>
+              <h2 className="mt-2 text-xl font-bold">
+                <Link
+                  href={`/teacher/lessons/${encodeURIComponent(lesson.id)}`}
+                  className="hover:text-violet-700"
+                >
+                  {lesson.title}
+                </Link>
+              </h2>
               <p className="mt-2 text-sm text-slate-600">
                 {lesson.exercises.length} câu hỏi · Đã đăng
               </p>

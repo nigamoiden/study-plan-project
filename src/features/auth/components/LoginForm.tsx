@@ -44,6 +44,7 @@ export default function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -66,7 +67,7 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const { profile } = await loginUser(validation.data);
+      const { profile } = await loginUser(validation.data, rememberMe);
       const destination =
         profile.role === "admin"
           ? "/dashboard"
@@ -152,6 +153,16 @@ export default function LoginForm() {
             className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-violet-600"
           />
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-600"
+          />
+          Ghi nhớ đăng nhập trên thiết bị này
+        </label>
 
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
