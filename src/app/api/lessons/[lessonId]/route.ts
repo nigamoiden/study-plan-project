@@ -135,3 +135,53 @@ export async function GET(_: NextRequest, context: RouteContext) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  if (request.headers.get("origin") !== request.nextUrl.origin) {
+    return NextResponse.json({ error: "Origin không hợp lệ." }, { status: 403 });
+  }
+
+  const user = await requireUser();
+  if (!user) {
+    return NextResponse.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
+  }
+
+  const { lessonId } = await context.params;
+  const lessonRef = adminDb.collection("lessons").doc(lessonId);
+
+  try {
+    const result = await adminDb.runTransaction(async (transaction) => {
+      const [lessonSnapshot, profileSnapshot] = await Promise.all([
+        transaction.get(lessonRef),
+        transaction.get(adminDb.collection("users").doc(user.uid)),
+      ]);
+
+      if (!lessonSnapshot.exists) return "not-found" as const;
+      if (!profileSnapshot.exists) return "not-found" as const;
+
+      const role = profileSnapshot.data()?.role ?? "student";
+      if (role !== "admin" &&
+          (role !== "teacher" || lessonSnapshot.data()?.createdBy !== user.uid)) {
+        return "forbidden" as const;
+      }
+
+      transaction.delete(lessonRef);
+      return "deleted" as const;
+    });
+
+    if (result === "not-found") {
+      return NextResponse.json({ error: "Không tìm thấy bài học." }, { status: 404 });
+    }
+    if (result === "forbidden") {
+      return NextResponse.json({ error: "Bạn chỉ có thể xóa bài do mình đăng." }, { status: 403 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete lesson error:", error);
+    return NextResponse.json(
+      { error: "Không thể xóa bài học." },
+      { status: 500 }
+    );
+  }
+}
