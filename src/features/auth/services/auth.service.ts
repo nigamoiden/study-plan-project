@@ -27,8 +27,21 @@ export type SessionProfile = {
 };
 
 const sessionPromises = new Map<string, Promise<SessionProfile>>();
+const REMEMBER_ME_KEY = "study-plan-remember-me";
 
-export async function createSession(user: User): Promise<SessionProfile> {
+function getRememberMePreference(): boolean {
+  return typeof window === "undefined" ||
+    window.localStorage.getItem(REMEMBER_ME_KEY) !== "false";
+}
+
+function saveRememberMePreference(rememberMe: boolean): void {
+  window.localStorage.setItem(REMEMBER_ME_KEY, String(rememberMe));
+}
+
+export async function createSession(
+  user: User,
+  rememberMe = getRememberMePreference()
+): Promise<SessionProfile> {
   const existing = sessionPromises.get(user.uid);
   if (existing) {
     return existing;
@@ -42,7 +55,7 @@ export async function createSession(user: User): Promise<SessionProfile> {
         "Content-Type": "application/json",
       },
       credentials: "same-origin",
-      body: JSON.stringify({ idToken }),
+      body: JSON.stringify({ idToken, rememberMe }),
     });
 
     if (!response.ok) {
@@ -74,6 +87,7 @@ export async function createSession(user: User): Promise<SessionProfile> {
 export async function registerUser(
   input: RegisterInput
 ): Promise<User> {
+  saveRememberMePreference(true);
   const credential = await createUserWithEmailAndPassword(
     auth,
     input.email.trim(),
@@ -95,6 +109,7 @@ export async function loginUser(
   input: LoginInput,
   rememberMe = true
 ): Promise<{ user: User; profile: SessionProfile }> {
+  saveRememberMePreference(rememberMe);
   await setPersistence(
     auth,
     rememberMe ? browserLocalPersistence : browserSessionPersistence
@@ -105,12 +120,13 @@ export async function loginUser(
     input.password
   );
 
-  const profile = await createSession(credential.user);
+  const profile = await createSession(credential.user, rememberMe);
 
   return { user: credential.user, profile };
 }
 
 export async function loginWithGoogle(): Promise<{ user: User; profile: SessionProfile }> {
+  saveRememberMePreference(true);
   await setPersistence(auth, browserLocalPersistence);
   const credential = await signInWithPopup(auth, googleProvider);
   const profile = await createSession(credential.user);

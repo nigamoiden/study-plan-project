@@ -7,8 +7,11 @@ import {
 
 import { FieldValue } from "firebase-admin/firestore";
 import { checkRateLimit } from "@/server/security/rate-limit";
-
-const EXPIRES_IN = 5 * 24 * 60 * 60 * 1000;
+import {
+  getSessionCookieOptions,
+  SESSION_EXPIRES_IN_MS,
+} from "@/server/auth/session-cookie";
+import { createSessionSchema } from "@/server/auth/session-schema";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,25 +29,28 @@ export async function POST(request: NextRequest) {
 
     const expectedOrigin = new URL(request.url).origin;
 
-    if (origin && origin !== expectedOrigin) {
+    if (!origin || origin !== expectedOrigin) {
       return NextResponse.json(
         { error: "Invalid origin" },
         { status: 403 }
       );
     }
 
-    const { idToken } = await request.json();
+    const parsedBody = createSessionSchema.safeParse(
+      await request.json().catch(() => null)
+    );
 
-    if (!idToken || typeof idToken !== "string") {
+    if (!parsedBody.success) {
       return NextResponse.json(
-        { error: "Missing ID token" },
+        { error: "Yêu cầu tạo phiên không hợp lệ." },
         { status: 400 }
       );
     }
+    const { idToken, rememberMe } = parsedBody.data;
 
     let decodedToken;
     try {
-      decodedToken = await adminAuth.verifyIdToken(idToken);
+      decodedToken = await adminAuth.verifyIdToken(idToken, true);
     } catch (error) {
       console.warn("ID token verification failed:", error);
       return NextResponse.json(
@@ -81,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const sessionCookie = await adminAuth.createSessionCookie(
       idToken,
-      { expiresIn: EXPIRES_IN }
+      { expiresIn: SESSION_EXPIRES_IN_MS }
     );
 
     const userRef = adminDb
@@ -114,13 +120,11 @@ export async function POST(request: NextRequest) {
       onboardingCompleted: Boolean(firebaseProfileData?.onboardingCompleted),
     });
 
-    response.cookies.set("__session", sessionCookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: EXPIRES_IN / 1000,
-    });
+    response.cookies.set(
+      "__session",
+      sessionCookie,
+      getSessionCookieOptions(rememberMe, process.env.NODE_ENV === "production")
+    );
 
     return response;
   } catch (error) {

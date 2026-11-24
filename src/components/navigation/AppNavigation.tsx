@@ -42,7 +42,16 @@ export default function AppNavigation() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
 
-  if (loading || !user) return null;
+  if (
+    loading ||
+    !user ||
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/reset-password"
+  ) {
+    return null;
+  }
 
   const role = profile?.role ?? "student";
   const links = navigationByRole[role];

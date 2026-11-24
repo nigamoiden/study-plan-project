@@ -52,6 +52,7 @@ export function AuthProvider({
             setProfile(currentProfile);
 
             if (
+              window.location.pathname === "/" ||
               window.location.pathname === "/login" ||
               window.location.pathname === "/register"
             ) {
