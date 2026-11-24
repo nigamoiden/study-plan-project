@@ -6,7 +6,12 @@ import {
   requireAssessmentUser,
   HttpError,
 } from "@/server/assessment/http";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import {
+  getUserRole,
+  isAdminRole,
+  requireTeacherOrAdmin,
+} from "@/server/assessment/permissions";
+import { canManageAuthoredContent } from "@/server/learning/lesson-permissions";
 import {
   updateAssessmentSchema,
 } from "@/features/assessment/schemas/question.schema";
@@ -34,7 +39,7 @@ export async function GET(request: NextRequest, context: Context) {
       data.createdBy !== user.uid
     ) {
       const profile = await adminDb.collection("users").doc(user.uid).get();
-      if (profile.data()?.role !== "admin") {
+      if (!isAdminRole(profile.data()?.role)) {
         throw new HttpError(404, "Không tìm thấy đề thi.");
       }
     }
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest, context: Context) {
 export async function PATCH(request: NextRequest, context: Context) {
   try {
     const user = await requireAssessmentUser(request);
-    await requireTeacherOrAdmin(user.uid);
+    const actorRole = await requireTeacherOrAdmin(user.uid);
 
     const { assessmentId } = await context.params;
     const ref = adminDb.collection("assessments").doc(assessmentId);
@@ -73,11 +78,10 @@ export async function PATCH(request: NextRequest, context: Context) {
 
     const existing = snap.data()!;
 
-    if (
-      existing.createdBy !== user.uid &&
-      (await adminDb.collection("users").doc(user.uid).get()).data()
-        ?.role !== "admin"
-    ) {
+    const creatorRole = existing.createdByRole ?? (
+      existing.createdBy ? await getUserRole(existing.createdBy) : undefined
+    );
+    if (!canManageAuthoredContent(actorRole, user.uid, existing.createdBy, creatorRole)) {
       throw new HttpError(403, "Bạn không sở hữu đề thi này.");
     }
 
@@ -130,7 +134,7 @@ export async function PATCH(request: NextRequest, context: Context) {
 export async function DELETE(request: NextRequest, context: Context) {
   try {
     const user = await requireAssessmentUser(request);
-    await requireTeacherOrAdmin(user.uid);
+    const actorRole = await requireTeacherOrAdmin(user.uid);
 
     const { assessmentId } = await context.params;
 
@@ -143,11 +147,10 @@ export async function DELETE(request: NextRequest, context: Context) {
 
     const data = snap.data()!;
 
-    if (
-      data.createdBy !== user.uid &&
-      (await adminDb.collection("users").doc(user.uid).get()).data()
-        ?.role !== "admin"
-    ) {
+    const creatorRole = data.createdByRole ?? (
+      data.createdBy ? await getUserRole(data.createdBy) : undefined
+    );
+    if (!canManageAuthoredContent(actorRole, user.uid, data.createdBy, creatorRole)) {
       throw new HttpError(403, "Bạn không sở hữu đề thi này.");
     }
 

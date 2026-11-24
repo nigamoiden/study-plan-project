@@ -9,6 +9,7 @@ import {
   HttpError,
   requireAssessmentUser,
 } from "@/server/assessment/http";
+import { isAdminRole } from "@/server/assessment/permissions";
 
 const optionSchema = z.object({
   id: z.string().min(1).max(40),
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     const role = userSnapshot.data()?.role;
 
-    if (!["admin", "teacher"].includes(role)) {
+    if (!isAdminRole(role) && role !== "teacher") {
       throw new HttpError(
         403,
         "Chỉ giáo viên hoặc quản trị viên được tạo đề."
@@ -231,6 +232,7 @@ export async function POST(request: NextRequest) {
       questions: data.questions,
       status: data.publish ? "published" : "draft",
       createdBy: user.uid,
+      createdByRole: role,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

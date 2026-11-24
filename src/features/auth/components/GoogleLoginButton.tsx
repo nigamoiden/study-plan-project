@@ -62,7 +62,7 @@ export default function GoogleLoginButton({
     try {
       const { profile } = await loginWithGoogle();
       const destination =
-        profile.role === "admin"
+        profile.role === "admin" || profile.role === "super_admin"
           ? "/dashboard"
           : profile.role === "teacher"
             ? "/teacher/dashboard"

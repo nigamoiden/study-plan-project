@@ -10,10 +10,14 @@ export async function getUserRole(uid: string): Promise<string> {
   return userSnap.data()?.role ?? "student";
 }
 
+export function isAdminRole(role: unknown): role is "admin" | "super_admin" {
+  return role === "admin" || role === "super_admin";
+}
+
 export async function requireTeacherOrAdmin(uid: string) {
   const role = await getUserRole(uid);
 
-  if (role !== "teacher" && role !== "admin") {
+  if (role !== "teacher" && !isAdminRole(role)) {
     throw new HttpError(403, "Bạn không có quyền thực hiện thao tác này.");
   }
 
@@ -23,7 +27,7 @@ export async function requireTeacherOrAdmin(uid: string) {
 export async function requireAdmin(uid: string) {
   const role = await getUserRole(uid);
 
-  if (role !== "admin") {
+  if (!isAdminRole(role)) {
     throw new HttpError(403, "Chỉ quản trị viên mới được thực hiện thao tác này.");
   }
 }

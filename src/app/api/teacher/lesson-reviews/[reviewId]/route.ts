@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
+import { isAdminRole } from "@/server/assessment/permissions";
 import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
 import { containsClientIdentityField } from "@/server/auth/identity-guard";
 import { handleApiError } from "@/server/assessment/http";
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ re
 
     const review = reviewSnap.data()!;
     const profile = await adminDb.collection("users").doc(user.uid).get();
-    if (profile.data()?.role !== "admin" && review.teacherId !== user.uid) {
+    if (!isAdminRole(profile.data()?.role) && review.teacherId !== user.uid) {
       return NextResponse.json({ error: "Bạn không có quyền chỉnh sửa bài nộp này." }, { status: 403 });
     }
 

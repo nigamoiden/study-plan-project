@@ -6,8 +6,11 @@ import { useEffect, useState } from "react";
 import { SUBJECT_LABELS } from "../constants";
 import type { Lesson } from "../types/content.types";
 import { deleteLesson, listLessons } from "../services/lesson.service";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function TeacherLessonList() {
+  const { profile } = useAuth();
+  const canManageAll = profile?.role === "admin" || profile?.role === "super_admin";
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function TeacherLessonList() {
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-violet-600">Khu vực giáo viên</p>
-          <h1 className="mt-1 text-3xl font-bold">Bài học của tôi</h1>
+          <h1 className="mt-1 text-3xl font-bold">{canManageAll ? "Quản lý bài học" : "Bài học của tôi"}</h1>
         </div>
         <div className="flex gap-3">
           <Link href="/teacher/lesson-reviews" className="rounded-xl border border-violet-300 bg-white px-5 py-3 font-semibold text-violet-700">Bài chờ AI review</Link>
@@ -71,10 +74,11 @@ export default function TeacherLessonList() {
               <h2 className="mt-2 text-xl font-bold">
                 <Link href={`/teacher/lessons/${encodeURIComponent(lesson.id)}`} className="hover:text-violet-700">{lesson.title}</Link>
               </h2>
+              {canManageAll && <p className="mt-2 text-sm text-slate-500">Người đăng: {lesson.createdByName || lesson.createdBy}</p>}
               <p className="mt-2 text-sm text-slate-600">{lesson.exercises.length} câu hỏi · Đã đăng</p>
-              <button type="button" onClick={() => void removeLesson(lesson)} disabled={deletingId === lesson.id} className="mt-4 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+              {lesson.canManage && <button type="button" onClick={() => void removeLesson(lesson)} disabled={deletingId === lesson.id} className="mt-4 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
                 {deletingId === lesson.id ? "Đang xóa..." : "Xóa bài"}
-              </button>
+              </button>}
             </article>
           ))}
         </div>

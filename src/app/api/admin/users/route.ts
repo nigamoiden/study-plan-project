@@ -4,11 +4,14 @@ import { z } from "zod";
 
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
-import { requireAdmin } from "@/server/assessment/permissions";
+import {
+  getUserRole,
+  requireAdmin,
+} from "@/server/assessment/permissions";
 import { handleApiError } from "@/server/assessment/http";
 
 const updateUserSchema = z.object({
-  role: z.enum(["student", "teacher", "admin"]).optional(),
+  role: z.enum(["student", "teacher", "admin", "super_admin"]).optional(),
   disabled: z.boolean().optional(),
 }).strict().refine(
   (value) => value.role !== undefined || value.disabled !== undefined,
@@ -22,15 +25,21 @@ export async function GET() {
       return NextResponse.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
     }
     await requireAdmin(user.uid);
+    const actorRole = await getUserRole(user.uid);
+    const actorIsSuperAdmin = actorRole === "super_admin";
 
     const snapshot = await adminDb.collection("users").limit(500).get();
     const users = snapshot.docs.map((document) => {
       const data = document.data();
+      const targetRole = data.role ?? "student";
       return {
         id: document.id,
         name: data.displayName ?? data.name ?? "",
         email: data.email ?? "",
-        role: data.role ?? "student",
+        role: targetRole,
+        canManage: document.id !== user.uid &&
+          (actorIsSuperAdmin || targetRole !== "super_admin"),
+        canPromoteToSuperAdmin: actorIsSuperAdmin,
         status: data.disabled ? "suspended" : "active",
         department: data.academicGoal?.targetMajor ?? data.department ?? "",
         updatedAt: data.updatedAt?.toDate?.().toISOString() ?? null,
@@ -50,6 +59,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
     }
     await requireAdmin(user.uid);
+    const actorRole = await getUserRole(user.uid);
 
     const parsed = updateUserSchema.safeParse(
       await request.json().catch(() => null)
@@ -76,6 +86,27 @@ export async function PATCH(request: NextRequest) {
     const profile = await profileRef.get();
     if (!profile.exists) {
       return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 });
+    }
+
+    const targetRole = profile.data()?.role ?? "student";
+    if (
+      targetRole === "super_admin" &&
+      parsed.data.role !== undefined &&
+      parsed.data.role !== "super_admin"
+    ) {
+      return NextResponse.json(
+        { error: "Không thể hạ quyền super admin; thao tác này sẽ làm mất dấu quyền sở hữu nội dung cũ." },
+        { status: 409 }
+      );
+    }
+    if (
+      actorRole !== "super_admin" &&
+      (targetRole === "super_admin" || parsed.data.role === "super_admin")
+    ) {
+      return NextResponse.json(
+        { error: "Chỉ super admin mới được quản lý hoặc cấp quyền super admin." },
+        { status: 403 }
+      );
     }
 
     if (parsed.data.disabled !== undefined) {

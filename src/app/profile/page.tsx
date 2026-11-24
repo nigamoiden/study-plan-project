@@ -25,6 +25,12 @@ const roleDetails = {
     dashboard: "/dashboard",
     dashboardLabel: "Mở bảng điều khiển quản trị",
   },
+  super_admin: {
+    label: "Super admin",
+    description: "Quản lý toàn bộ nội dung và tài khoản trong hệ thống.",
+    dashboard: "/dashboard",
+    dashboardLabel: "Mở bảng điều khiển quản trị",
+  },
 } as const;
 
 export default function ProfilePage() {

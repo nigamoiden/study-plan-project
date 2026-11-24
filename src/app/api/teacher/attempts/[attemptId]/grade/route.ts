@@ -6,7 +6,7 @@ import {
   requireAssessmentUser,
   HttpError,
 } from "@/server/assessment/http";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { isAdminRole, requireTeacherOrAdmin } from "@/server/assessment/permissions";
 import { manualGradeSchema } from "@/features/assessment/schemas/question.schema";
 
 type Context = {
@@ -86,8 +86,7 @@ export async function POST(request: NextRequest, context: Context) {
 
       if (
         assessment.createdBy !== user.uid &&
-        (await adminDb.collection("users").doc(user.uid).get()).data()
-          ?.role !== "admin"
+        !isAdminRole((await adminDb.collection("users").doc(user.uid).get()).data()?.role)
       ) {
         throw new HttpError(403, "Bạn không có quyền chấm đề thi này.");
       }
@@ -243,7 +242,7 @@ export async function GET(
 
     if (
       assessment.createdBy !== user.uid &&
-      profileSnap.data()?.role !== "admin"
+      !isAdminRole(profileSnap.data()?.role)
     ) {
       throw new HttpError(403, "Bạn không có quyền xem bài làm này.");
     }

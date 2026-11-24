@@ -6,7 +6,8 @@ import {
   requireAssessmentUser,
   HttpError,
 } from "@/server/assessment/http";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { getUserRole, requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { canManageAuthoredContent } from "@/server/learning/lesson-permissions";
 
 type Context = {
   params: Promise<{ assessmentId: string }>;
@@ -15,7 +16,7 @@ type Context = {
 export async function POST(request: NextRequest, context: Context) {
   try {
     const user = await requireAssessmentUser(request);
-    await requireTeacherOrAdmin(user.uid);
+    const actorRole = await requireTeacherOrAdmin(user.uid);
 
     const { assessmentId } = await context.params;
 
@@ -28,10 +29,10 @@ export async function POST(request: NextRequest, context: Context) {
 
     const assessment = snap.data()!;
 
-    const profile = await adminDb.collection("users").doc(user.uid).get();
-    const isAdmin = profile.data()?.role === "admin";
-
-    if (assessment.createdBy !== user.uid && !isAdmin) {
+    const creatorRole = assessment.createdByRole ?? (
+      assessment.createdBy ? await getUserRole(assessment.createdBy) : undefined
+    );
+    if (!canManageAuthoredContent(actorRole, user.uid, assessment.createdBy, creatorRole)) {
       throw new HttpError(403, "Bạn không sở hữu đề thi này.");
     }
 

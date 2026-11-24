@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:security": "node --experimental-strip-types --test src/server/inbox/validation.test.mjs src/server/auth/session-cookie.test.mjs src/server/auth/session-schema.test.mjs"
+    "test:security": "node --experimental-strip-types --test src/server/inbox/validation.test.mjs src/server/auth/session-cookie.test.mjs src/server/auth/session-schema.test.mjs src/server/learning/lesson-permissions.test.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",

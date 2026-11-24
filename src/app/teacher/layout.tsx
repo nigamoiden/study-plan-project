@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
+import { isAdminRole } from "@/server/assessment/permissions";
 
 export default async function TeacherLayout({
   children,
@@ -17,7 +18,7 @@ export default async function TeacherLayout({
   const profile = await adminDb.collection("users").doc(user.uid).get();
   const role = profile.data()?.role ?? "student";
 
-  if (role !== "teacher" && role !== "admin") {
+  if (role !== "teacher" && !isAdminRole(role)) {
     redirect("/student-dashboard");
   }
 

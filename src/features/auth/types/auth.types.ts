@@ -3,7 +3,7 @@ import type { User } from "firebase/auth";
 
 export type AuthUser = User;
 
-export type UserRole = "student" | "teacher" | "admin";
+export type UserRole = "student" | "teacher" | "admin" | "super_admin";
 
 export interface UserProfile {
   uid: string;

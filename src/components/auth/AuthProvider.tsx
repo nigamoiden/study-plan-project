@@ -57,7 +57,7 @@ export function AuthProvider({
               window.location.pathname === "/register"
             ) {
               const destination =
-                currentProfile.role === "admin"
+              currentProfile.role === "admin" || currentProfile.role === "super_admin"
                   ? "/dashboard"
                   : currentProfile.role === "teacher"
                     ? "/teacher/dashboard"

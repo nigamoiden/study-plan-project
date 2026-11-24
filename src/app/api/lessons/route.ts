@@ -10,8 +10,9 @@ import type {
 } from "@/features/learning-content/types/content.types";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { isAdminRole, requireTeacherOrAdmin } from "@/server/assessment/permissions";
 import { HttpError } from "@/server/assessment/http";
+import { canManageAuthoredContent } from "@/server/learning/lesson-permissions";
 
 function toIsoString(value: unknown): string | null {
   if (
@@ -29,7 +30,10 @@ function toIsoString(value: unknown): string | null {
 function serializeLesson(
   id: string,
   data: FirebaseFirestore.DocumentData,
-  includeAnswers: boolean
+  includeAnswers: boolean,
+  creatorRole?: string,
+  canManage = false,
+  creatorName?: string
 ): Lesson {
   const exercises: LessonExercise[] = Array.isArray(data.exercises)
     ? data.exercises.map((exercise: Record<string, unknown>) => {
@@ -78,6 +82,9 @@ function serializeLesson(
     exercises,
     answerVisible: includeAnswers,
     createdBy: data.createdBy,
+    createdByRole: creatorRole as Lesson["createdByRole"],
+    createdByName: creatorName,
+    canManage,
     createdAt: toIsoString(data.createdAt),
     updatedAt: toIsoString(data.updatedAt),
   };
@@ -138,13 +145,43 @@ export async function GET(request: NextRequest) {
 
     if (role === "teacher") {
       query = query.where("createdBy", "==", user.uid);
-    } else if (role !== "admin") {
+    } else if (!isAdminRole(role)) {
       return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
     }
 
     const snapshot = await query.limit(200).get();
+    const creatorIds = isAdminRole(role)
+      ? Array.from(new Set(
+          snapshot.docs
+            .map((document) => document.data().createdBy)
+            .filter((creatorId): creatorId is string => typeof creatorId === "string")
+        ))
+      : [];
+    const creatorProfiles = await Promise.all(
+      creatorIds.map((creatorId) => adminDb.collection("users").doc(creatorId).get())
+    );
+    const creatorRoles = new Map(
+      creatorProfiles.map((profile) => [profile.id, profile.data()?.role as string | undefined])
+    );
+    const creatorNames = new Map(
+      creatorProfiles.map((profile) => [
+        profile.id,
+        String(profile.data()?.displayName ?? profile.data()?.name ?? ""),
+      ])
+    );
     const lessons = snapshot.docs
-      .map((document) => serializeLesson(document.id, document.data(), true))
+      .map((document) => {
+        const data = document.data();
+        const creatorRole = data.createdByRole ?? creatorRoles.get(String(data.createdBy));
+        return serializeLesson(
+          document.id,
+          data,
+          true,
+          creatorRole,
+          canManageAuthoredContent(role, user.uid, data.createdBy, creatorRole),
+          creatorNames.get(String(data.createdBy))
+        );
+      })
       .filter((lesson) => {
         return (
           (!subjectFilter || lesson.subject === subjectFilter) &&
@@ -176,7 +213,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await requireTeacherOrAdmin(user.uid);
+    const creatorRole = await requireTeacherOrAdmin(user.uid);
 
     let body: unknown;
     try {
@@ -215,6 +252,7 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       status: "published",
       createdBy: user.uid,
+      createdByRole: creatorRole,
       createdAt: now,
       updatedAt: now,
     });

@@ -27,11 +27,11 @@ export default function LoginForm() {
 
       const response = await fetch("/api/auth/me", { credentials: "same-origin" });
       const data = await response.json() as {
-        role?: "student" | "teacher" | "admin";
+        role?: "student" | "teacher" | "admin" | "super_admin";
         onboardingCompleted?: boolean;
       };
       router.push(
-        data.role === "admin"
+        data.role === "admin" || data.role === "super_admin"
           ? "/dashboard"
           : data.role === "teacher"
             ? "/teacher/dashboard"

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAssessmentUser(request);
-    await requireTeacherOrAdmin(user.uid);
+    const creatorRole = await requireTeacherOrAdmin(user.uid);
 
     const body = await request.json();
     const parsed = createAssessmentSchema.safeParse(body);
@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       questions: input.questions,
       status: "draft",
       createdBy: user.uid,
+      createdByRole: creatorRole,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

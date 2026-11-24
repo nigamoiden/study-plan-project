@@ -6,9 +6,11 @@ type ManagedUser = {
   id: string;
   name: string;
   email: string;
-  role: "student" | "teacher" | "admin";
+  role: "student" | "teacher" | "admin" | "super_admin";
   status: "active" | "suspended";
   department: string;
+  canManage?: boolean;
+  canPromoteToSuperAdmin?: boolean;
 };
 
 export default function UserManagement() {
@@ -133,7 +135,7 @@ export default function UserManagement() {
                     <select
                       aria-label={`Vai trò của ${user.name || user.email}`}
                       value={user.role}
-                      disabled={saving === user.id}
+                      disabled={saving === user.id || user.canManage === false}
                       onChange={(event) =>
                         void updateUser(user.id, {
                           role: event.target.value as ManagedUser["role"],
@@ -144,10 +146,11 @@ export default function UserManagement() {
                       <option value="student">Student</option>
                       <option value="teacher">Teacher</option>
                       <option value="admin">Admin</option>
+                      <option value="super_admin" disabled={!user.canPromoteToSuperAdmin}>Super admin</option>
                     </select>
                     <button
                       type="button"
-                      disabled={saving === user.id}
+                      disabled={saving === user.id || user.canManage === false}
                       onClick={() =>
                         void updateUser(user.id, {
                           disabled: user.status !== "suspended",

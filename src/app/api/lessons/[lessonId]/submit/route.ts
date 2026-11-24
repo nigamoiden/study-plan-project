@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
+import { isAdminRole } from "@/server/assessment/permissions";
 import { gradeWithAI, isAIGradingConfigured } from "@/server/grading/ai-grader";
 import { containsClientIdentityField } from "@/server/auth/identity-guard";
 import { checkRateLimit } from "@/server/security/rate-limit";
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ le
   if (
     lesson.status !== "published" ||
     (
-      (profile.role ?? "student") !== "admin" &&
+      !isAdminRole(profile.role ?? "student") &&
       !((profile.focusSubjects ?? []) as string[]).includes(lesson.subject)
     )
   ) {

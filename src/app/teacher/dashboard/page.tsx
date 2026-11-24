@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { isAdminRole, requireTeacherOrAdmin } from "@/server/assessment/permissions";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +16,11 @@ export default async function TeacherDashboardPage() {
   const role = profile.data()?.role ?? "student";
 
   let lessonQuery: FirebaseFirestore.Query = adminDb.collection("lessons");
-  if (role !== "admin") {
+  if (!isAdminRole(role)) {
     lessonQuery = lessonQuery.where("createdBy", "==", user.uid);
   }
   let reviewQuery: FirebaseFirestore.Query = adminDb.collection("lessonGradingReviews");
-  if (role !== "admin") {
+  if (!isAdminRole(role)) {
     reviewQuery = reviewQuery.where("teacherId", "==", user.uid);
   }
 

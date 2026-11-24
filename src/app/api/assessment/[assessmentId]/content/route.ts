@@ -6,7 +6,8 @@ import {
   requireAssessmentUser,
   HttpError,
 } from "@/server/assessment/http";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { getUserRole, requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { canManageAuthoredContent } from "@/server/learning/lesson-permissions";
 import {
   createAssessmentSchema,
 } from "@/features/assessment/schemas/question.schema";
@@ -18,7 +19,7 @@ type Context = {
 export async function PUT(request: NextRequest, context: Context) {
   try {
     const user = await requireAssessmentUser(request);
-    await requireTeacherOrAdmin(user.uid);
+    const actorRole = await requireTeacherOrAdmin(user.uid);
 
     const { assessmentId } = await context.params;
 
@@ -40,11 +41,12 @@ export async function PUT(request: NextRequest, context: Context) {
     }
 
     const current = assessmentSnap.data()!;
-    const profile = await adminDb.collection("users").doc(user.uid).get();
+    const creatorRole = current.createdByRole ?? (
+      current.createdBy ? await getUserRole(current.createdBy) : undefined
+    );
 
     if (
-      current.createdBy !== user.uid &&
-      profile.data()?.role !== "admin"
+      !canManageAuthoredContent(actorRole, user.uid, current.createdBy, creatorRole)
     ) {
       throw new HttpError(403, "Bạn không sở hữu đề thi này.");
     }

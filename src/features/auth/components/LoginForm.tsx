@@ -69,7 +69,7 @@ export default function LoginForm() {
     try {
       const { profile } = await loginUser(validation.data, rememberMe);
       const destination =
-        profile.role === "admin"
+        profile.role === "admin" || profile.role === "super_admin"
           ? "/dashboard"
           : profile.role === "teacher"
             ? "/teacher/dashboard"

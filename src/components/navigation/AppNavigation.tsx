@@ -27,12 +27,19 @@ const navigationByRole = {
     { href: "/teacher/lessons", label: "Bài học" },
     { href: "/teacher/lesson-reviews", label: "Chấm bài" },
   ],
+  super_admin: [
+    { href: "/dashboard", label: "Quản trị" },
+    { href: "/teacher/dashboard", label: "Giảng dạy" },
+    { href: "/teacher/lessons", label: "Bài học" },
+    { href: "/teacher/lesson-reviews", label: "Chấm bài" },
+  ],
 } as const;
 
 const roleLabels = {
   student: "Học sinh",
   teacher: "Giáo viên",
   admin: "Quản trị viên",
+  super_admin: "Super admin",
 } as const;
 
 export default function AppNavigation() {
@@ -77,7 +84,7 @@ export default function AppNavigation() {
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link
-          href={role === "admin" ? "/dashboard" : role === "teacher" ? "/teacher/dashboard" : "/student-dashboard"}
+          href={role === "admin" || role === "super_admin" ? "/dashboard" : role === "teacher" ? "/teacher/dashboard" : "/student-dashboard"}
           className="text-lg font-bold text-violet-800"
         >
           StudyPlan

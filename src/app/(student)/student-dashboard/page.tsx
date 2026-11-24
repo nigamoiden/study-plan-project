@@ -48,5 +48,5 @@ export default async function StudentDashboardPage() {
     }
   }
 
-  return <StudyPlanDashboard initialPlan={plan} dashboardRole={role as "student" | "teacher" | "admin"} />;
+  return <StudyPlanDashboard initialPlan={plan} dashboardRole={role as "student" | "teacher" | "admin" | "super_admin"} />;
 }

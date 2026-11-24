@@ -22,7 +22,7 @@ import type {
 } from "../types/auth.types";
 
 export type SessionProfile = {
-  role: "student" | "teacher" | "admin";
+  role: "student" | "teacher" | "admin" | "super_admin";
   onboardingCompleted: boolean;
 };
 
@@ -66,7 +66,7 @@ export async function createSession(
     }
 
     const data = await response.json() as {
-      role?: "student" | "teacher" | "admin";
+      role?: SessionProfile["role"];
       onboardingCompleted?: boolean;
     };
 

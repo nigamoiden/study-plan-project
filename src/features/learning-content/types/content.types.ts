@@ -83,7 +83,10 @@ export interface LessonDraft {
 export interface Lesson extends LessonDraft {
   id: string;
   createdBy: string;
+  createdByRole?: "student" | "teacher" | "admin" | "super_admin";
+  createdByName?: string;
   createdAt: string | null;
   updatedAt: string | null;
   answerVisible?: boolean;
+  canManage?: boolean;
 }

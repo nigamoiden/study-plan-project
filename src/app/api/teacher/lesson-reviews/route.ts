@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { requireUser } from "@/server/auth/require-user";
-import { requireTeacherOrAdmin } from "@/server/assessment/permissions";
+import { isAdminRole, requireTeacherOrAdmin } from "@/server/assessment/permissions";
 import { handleApiError } from "@/server/assessment/http";
 
 export async function GET() {
@@ -17,7 +17,7 @@ export async function GET() {
     const role = profile.data()?.role ?? "student";
 
     let query: FirebaseFirestore.Query = adminDb.collection("lessonGradingReviews");
-    if (role !== "admin") {
+    if (!isAdminRole(role)) {
       query = query.where("teacherId", "==", user.uid);
     }
 

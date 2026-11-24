@@ -40,7 +40,7 @@ export default function StudyPlanDashboard({
   dashboardRole = "student",
 }: {
   initialPlan: StudyPlan;
-  dashboardRole?: "student" | "teacher" | "admin";
+  dashboardRole?: "student" | "teacher" | "admin" | "super_admin";
 }) {
   const [plan, setPlan] = useState(initialPlan);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
@@ -102,7 +102,7 @@ export default function StudyPlanDashboard({
           </p>
         </div>
         <nav className="flex flex-wrap gap-3 text-sm font-medium">
-          {dashboardRole === "admin" && (
+          {(dashboardRole === "admin" || dashboardRole === "super_admin") && (
             <>
               <Link href="/dashboard" className="rounded-full bg-slate-900 px-4 py-2 text-white hover:bg-slate-800">
                 Mở Admin Dashboard

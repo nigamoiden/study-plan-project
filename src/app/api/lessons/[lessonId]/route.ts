@@ -7,6 +7,8 @@ import type {
   ExerciseType,
 } from "@/features/learning-content/types/content.types";
 import { requireUser } from "@/server/auth/require-user";
+import { canManageAuthoredContent } from "@/server/learning/lesson-permissions";
+import { isAdminRole } from "@/server/assessment/permissions";
 
 type RouteContext = {
   params: Promise<{ lessonId: string }>;
@@ -28,7 +30,10 @@ function toIsoString(value: unknown): string | null {
 function serializeLesson(
   id: string,
   data: FirebaseFirestore.DocumentData,
-  includeAnswers: boolean
+  includeAnswers: boolean,
+  creatorRole?: string,
+  canManage = false,
+  creatorName?: string
 ): Lesson {
   const exercises: LessonExercise[] = Array.isArray(data.exercises)
     ? data.exercises.map((exercise: Record<string, unknown>) => {
@@ -77,8 +82,11 @@ function serializeLesson(
     exercises,
     answerVisible: includeAnswers,
     createdBy: data.createdBy,
+    createdByRole: creatorRole as Lesson["createdByRole"],
+    createdByName: creatorName,
     createdAt: toIsoString(data.createdAt),
     updatedAt: toIsoString(data.updatedAt),
+    canManage,
   };
 }
 
@@ -108,8 +116,12 @@ export async function GET(_: NextRequest, context: RouteContext) {
     const lessonData = lessonSnapshot.data()!;
     const profile = profileSnapshot.data()!;
     const role = profile.role ?? "student";
+    const creatorSnapshot = isAdminRole(role) && lessonData.createdBy
+      ? await adminDb.collection("users").doc(lessonData.createdBy).get()
+      : null;
+    const creatorRole = lessonData.createdByRole ?? creatorSnapshot?.data()?.role;
     const canRead =
-      role === "admin" ||
+      isAdminRole(role) ||
       (role === "teacher" && lessonData.createdBy === user.uid) ||
       (role === "student" &&
         lessonData.status === "published" &&
@@ -124,7 +136,10 @@ export async function GET(_: NextRequest, context: RouteContext) {
       lesson: serializeLesson(
         lessonSnapshot.id,
         lessonData,
-        role !== "student"
+        role !== "student",
+        creatorRole,
+        canManageAuthoredContent(role, user.uid, lessonData.createdBy, creatorRole),
+        creatorSnapshot?.data()?.displayName ?? creatorSnapshot?.data()?.name
       ),
     });
   } catch (error) {
@@ -160,8 +175,12 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       if (!profileSnapshot.exists) return "not-found" as const;
 
       const role = profileSnapshot.data()?.role ?? "student";
-      if (role !== "admin" &&
-          (role !== "teacher" || lessonSnapshot.data()?.createdBy !== user.uid)) {
+      const lessonData = lessonSnapshot.data()!;
+      const creatorSnapshot = lessonData.createdBy
+        ? await transaction.get(adminDb.collection("users").doc(lessonData.createdBy))
+        : null;
+      const creatorRole = lessonData.createdByRole ?? creatorSnapshot?.data()?.role;
+      if (!canManageAuthoredContent(role, user.uid, lessonData.createdBy, creatorRole)) {
         return "forbidden" as const;
       }
 
